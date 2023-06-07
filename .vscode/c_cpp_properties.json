@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "AVR",
+            "intelliSenseMode": "windows-gcc-x64",
+            "compilerPath": "${workspaceFolder}/tools/avr8-gnu-toolchain-win32_x86_64/bin/avr-gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "includePath": [
+                "${workspaceFolder}/tools/avr8-gnu-toolchain-win32_x86_64/avr/include/**"
+            ],
+            "compilerArgs": [
+                "-g",
+                "-Os",
+                "-Wall",
+                "-Wextra",
+                "-fpermissive",
+                "-fno-exceptions",
+                "-fno-threadsafe-statics",
+                "-pipe"
+            ],
+            "configurationProvider": "ms-vscode.cpptools-tools",
+            "defines": [
+                "__AVR_ATmega328P__"
+            ]
+        }
+    ],
+    "version": 4
+}

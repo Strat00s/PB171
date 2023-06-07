@@ -1,0 +1,31 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": [
+                "tools/avr8-gnu-toolchain-win32_x86_64/bin/avr-gcc.exe -mmcu=atmega328p -Os -c -o main.o src/main.c",
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Upload",
+            "type": "shell",
+            "command": "${workspaceFolder}/tools/avrdude/avrdude.exe -F -V -c arduino -p ATMEGA328P -P COMxx -b 115200 -U flash:w:main.hex",
+            "dependsOn": "Build",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        }
+    ]
+}
