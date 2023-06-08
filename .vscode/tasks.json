@@ -6,9 +6,7 @@
         {
             "label": "Build",
             "type": "shell",
-            "command": [
-                "tools/avr8-gnu-toolchain-win32_x86_64/bin/avr-gcc.exe -mmcu=atmega328p -Os -c -o main.o src/main.c",
-            ],
+            "command": "${workspaceFolder}/scripts/build.bat ${workspaceFolder}",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -20,7 +18,7 @@
         {
             "label": "Upload",
             "type": "shell",
-            "command": "${workspaceFolder}/tools/avrdude/avrdude.exe -F -V -c arduino -p ATMEGA328P -P COMxx -b 115200 -U flash:w:main.hex",
+            "command": "${workspaceFolder}/scripts/upload.bat ${workspaceFolder} COM10",
             "dependsOn": "Build",
             "group": "test",
             "presentation": {
