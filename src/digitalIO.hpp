@@ -18,8 +18,8 @@ void pinMode(volatile uint8_t& ddr, uint8_t pin, uint8_t mode) {
     }
 }
 
-uint8_t digitalRead(volatile uint8_t& port, uint8_t pin) {
-    return (port & (1 << pin)) ? HIGH : LOW;
+uint8_t digitalRead(volatile uint8_t& in_port, uint8_t pin) {
+    return (in_port & (1 << pin)) ? HIGH : LOW;
 }
 
 void digitalWrite(volatile uint8_t& port, uint8_t pin, uint8_t value) {

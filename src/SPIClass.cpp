@@ -25,11 +25,11 @@ SPIClass::~SPIClass() {
 
 void SPIClass::init() {
     //Set MOSI and SCK and SS as output
-    DDRB = (1<<PB3)|(1<<PB5)|(1<<PB2);
+    DDRB = (1 << PB3) | (1 << PB5) | (1 << PB2);
 
     //Enable SPI, set it to master mode, set clock rate to 2MHz (fck/8), msb first, mode 0
-    SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
-    SPSR = (1<<SPI2X);
+    SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
+    SPSR = 1 << SPI2X;
 }
 
 
