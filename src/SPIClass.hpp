@@ -1,9 +1,11 @@
+#pragma once
 //simple SPI class for comunicating with connected devices
 #include <avr/io.h>
 
 class SPIClass {
 private:
     uint8_t transfer(uint8_t data);
+    uint8_t initialized;
 
 public:
     SPIClass();
