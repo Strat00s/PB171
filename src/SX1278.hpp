@@ -128,7 +128,7 @@ public:
 
 
 
-    void init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power);
+    uint8_t init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power);
     uint8_t readRegister(uint8_t addr);
     void writeRegister(uint8_t addr, uint8_t data);
     void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);

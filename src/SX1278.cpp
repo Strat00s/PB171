@@ -20,12 +20,15 @@ SX1278::~SX1278() {
 //crc: enabled and set to 4/7
 //gain: automatic
 //frequency hopping: off
-void SX1278::init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power) {
+uint8_t SX1278::init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power) {
     this->spi = spi;
     this->spi->init();
 
     pinMode(this->cs, OUTPUT);
     digitalWrite(this->cs, HIGH);
+
+    if (getVersion() != CHIP_VERSION)
+        return 0;
 
     float freq   = 434.0F;
     float bw     = 125.0F;
@@ -92,6 +95,7 @@ void SX1278::init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_
         setRegister(REG_MODEM_CONFIG_3, LOW_DATA_RATE_OPT_OFF, 3, 3);
     }
 
+    return 1;
 }
 
 
