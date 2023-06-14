@@ -36,11 +36,11 @@ void blink(uint8_t cnt) {
 
 
 int main() {
-
     pinMode(BME_CS, OUTPUT);
     digitalWrite(BME_CS, LOW);
     _delay_ms(100);
     digitalWrite(BME_CS, HIGH);
+    digitalWrite(LORA_CS, HIGH);
 
     pinMode(LORA_IRQ, INPUT);
     pinMode(LORA_GPIO, INPUT);
@@ -50,18 +50,17 @@ int main() {
     spi.init();
     serial.println("SPI init");
 
-    //for (uint8_t i = 0; i < 127; i++) {
-    //    serial.print("Reg 0x");
-    //    serial.printHex(i);
-    //    serial.print(": 0x");
-    //    digitalWrite(BME_CS, LOW);
-    //    serial.printlnHex(spi.readRegister(i, BME_READ));
-    //    digitalWrite(BME_CS, HIGH);
-    //    _delay_ms(5);
-    //}
-
-
-    //return 0;
+    for (uint8_t i = 0; i < 127; i++) {
+        serial.print("Reg 0x");
+        serial.printHex(i);
+        serial.print(": 0x");
+        digitalWrite(BME_CS, LOW);
+        _delay_ms(1);
+        serial.printlnHex(spi.readRegister(i, BME_READ));
+        _delay_ms(1);
+        digitalWrite(BME_CS, HIGH);
+    }
+    return 0;
 
     lora.init(&spi, 18U, 8U, 10);
     serial.println("LORA init");
