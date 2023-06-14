@@ -1,8 +1,8 @@
 #include "SPIClass.hpp"
 #include <avr/io.h>
 
-#define READ(x) (x & 0x7F)
-#define WRITE(x) (x | 0x80)
+#define MSB_0(x) (x & 0x7F)
+#define MSB_1(x) (x | 0x80)
 
 SPIClass SPI;
 
@@ -12,12 +12,6 @@ SPIClass SPI;
 //mode 0
 SPIClass::SPIClass() {
     initialized = 0;
-    //// Set MOSI and SCK as output, others as input
-    //DDRB = (1<<PB3)|(1<<PB5);
-//
-    //// Enable SPI, Master mode, set clock rate fck/8 (2 MHz), msb first, mode 0
-    //SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0);
-    //SPSR = (1<<SPI2X);
 }
 
 SPIClass::~SPIClass() {
@@ -38,34 +32,40 @@ void SPIClass::init() {
 }
 
 
+void SPIClass::setReadWrite(uint8_t addr, uint8_t rw) {
+    if (rw)
+        transfer(MSB_1(addr));
+    else
+        transfer(MSB_0(addr));
+}
+
+
 uint8_t SPIClass::transfer(uint8_t data) {
     SPDR = data;
     asm volatile("nop");
-    while (!(SPSR & (1 << SPIF))) ; // wait
+    while (!(SPSR & (1 << SPIF)));
     return SPDR;
 }
 
-uint8_t SPIClass::readRegister(uint8_t addr) {
-    transfer(READ(addr));
+uint8_t SPIClass::readRegister(uint8_t addr, uint8_t rw) {
+    setReadWrite(addr, rw);
     return transfer(0x00);
 }
 
-void SPIClass::writeRegister(uint8_t addr, uint8_t data) {
-    transfer(WRITE(addr));
+void SPIClass::writeRegister(uint8_t addr, uint8_t data, uint8_t rw) {
+    setReadWrite(addr, rw);
     transfer(data);
 }
-void SPIClass::writeRegisterBurst(uint8_t addr, uint8_t* data, uint8_t length) {
-    transfer(WRITE(addr));
+void SPIClass::writeRegisterBurst(uint8_t addr, uint8_t* data, uint8_t length, uint8_t rw) {
+    setReadWrite(addr, rw);
     for (int i = 0; i < length; i++) {
         transfer(data[i]);
     }
 }
-//void SPIClass::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t mask_msb) {
-//    uint8_t reg = readRegister(addr);
-//
-//    uint8_t mask = ~(0xFF >> (8 - mask_lsb) | 0xFF << (mask_msb + 1));
-//    data = (reg & ~mask) | (data & mask);
-//
-//    writeRegister(addr, data);
-//}
+void SPIClass::readRegisterBurst(uint8_t addr, uint8_t* data, uint8_t length, uint8_t rw) {
+    setReadWrite(addr, rw);
+    for (int i = 0; i < length; i++) {
+        data[i] = transfer(0x00);
+    }
+}
 

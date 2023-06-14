@@ -150,27 +150,27 @@ void SX1278::setCurrentLimit(uint8_t current_limit) {
 
 uint8_t SX1278::readRegister(uint8_t addr) {
     digitalWrite(this->cs, LOW);
-    uint8_t reg = this->spi->readRegister(addr);
+    uint8_t reg = this->spi->readRegister(addr, SX1278_READ);
     digitalWrite(this->cs, HIGH);
     return reg;
 }
 
 void SX1278::writeRegister(uint8_t addr, uint8_t data) {
     digitalWrite(this->cs, LOW);
-    this->spi->writeRegister(addr, data);
+    this->spi->writeRegister(addr, data, SX1278_WRITE);
     digitalWrite(this->cs, HIGH);
 }
 
 void SX1278::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t mask_msb) {
     digitalWrite(this->cs, LOW);
-    uint8_t reg = this->spi->readRegister(addr);
+    uint8_t reg = this->spi->readRegister(addr, SX1278_READ);
     digitalWrite(this->cs, HIGH);
 
     uint8_t mask = ~(0xFF >> (8 - mask_lsb) | 0xFF << (mask_msb + 1));
     data = (reg & ~mask) | (data & mask);
 
     digitalWrite(this->cs, LOW);
-    this->spi->writeRegister(addr, data);
+    this->spi->writeRegister(addr, data, SX1278_WRITE);
     digitalWrite(this->cs, HIGH);
 }
 
@@ -193,7 +193,7 @@ void SX1278::startTransmission(uint8_t *data, uint8_t length, uint8_t addr) {
 
     //write data to FIFO
     digitalWrite(this->cs, LOW);
-    this->spi->writeRegisterBurst(REG_FIFO, data, length);
+    this->spi->writeRegisterBurst(REG_FIFO, data, length, SX1278_WRITE);
     digitalWrite(this->cs, HIGH);
 
     //start transmission

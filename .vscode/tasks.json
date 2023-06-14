@@ -24,6 +24,25 @@
             "presentation": {
                 "reveal": "always"
             }
+        },
+        {
+            "label": "Upload & Monitor",
+            "type": "shell",
+            "command": "plink -serial COM15 -sercfg 9600,8,1,N,N",
+            "dependsOn": "Upload",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Monitor",
+            "type": "shell",
+            "command": "plink -serial COM15 -sercfg 9600,8,1,N,N",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
         }
     ]
 }

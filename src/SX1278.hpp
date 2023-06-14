@@ -100,6 +100,10 @@
 #define FIFO_TX_BASE_ADDR_MAX                   0b00000000  //  7     0   allocate the entire FIFO buffer for TX only
 
 
+#define SX1278_READ  0
+#define SX1278_WRITE 1
+
+
 class SX1278 {
 private:
     /* data */
