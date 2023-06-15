@@ -11,6 +11,7 @@
 //rw bit value
 #define BMX280_READ  1
 #define BMX280_WRITE 0
+
 /*----(REGISTER CONFIGURATION VALUES)----*/
 //device IDs
 #define BMP280_SAMPLE_ID      0x56
@@ -22,6 +23,8 @@
 #define BMX280_SLEEP          0b00000000
 #define BMX280_FORCED         0b00000001  //and 0x02
 #define BMX280_NORMAL         0b00000011
+
+#define BMX280_RESET          0xB6
 
 //humidity oversampling (BME280 only)
 #define BME280_HUM_OVER_SKIP  0b00000000
@@ -93,7 +96,7 @@
 #define BME280_HUM_MSB_REG    0xFD
 #define BME280_HUM_LSB_REG    0xFE
 
-//calibration registers
+//calibration registers (26)
 #define BMX280_CALIB00_REG    0x88
 #define BMX280_CALIB01_REG    0x89
 #define BMX280_CALIB02_REG    0x8A
@@ -120,7 +123,7 @@
 #define BMX280_CALIB23_REG    0x9F
 #define BMX280_CALIB24_REG    0xA0
 #define BMX280_CALIB25_REG    0xA1
-//BME280 only calibration registers
+//BME280 only calibration registers (16)
 #define BME280_CALIB26_REG    0xE1
 #define BME280_CALIB27_REG    0xE2
 #define BME280_CALIB28_REG    0xE3
@@ -146,10 +149,10 @@ private:
     uint8_t pressure[3];
     uint8_t humidity[2];
 
-    uint8_t calib_regs[42]; //26 for temperature + pressure, 16 for humidity
+    uint8_t calib_regs[42] = {0}; //26 for temperature + pressure, 16 for humidity
 
     uint8_t cs;
-    SPIClass *spi;
+    SPIClass *spi = nullptr;
 
     void measure();
 
@@ -166,7 +169,9 @@ public:
     uint8_t init();
     uint8_t init(SPIClass *spi);
 
-    uint8_t getVersion();
+    void reset();
+
+    uint8_t getId();
     uint8_t getStatus();
 
     void setMode(uint8_t mode);

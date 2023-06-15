@@ -6,6 +6,9 @@ SX1278::SX1278(uint8_t cs, uint8_t rst, uint8_t irq, uint8_t gpio) {
     this->rst  = rst;
     this->irq  = irq;
     this->gpio = gpio;
+
+    pinMode(this->cs, OUTPUT);
+    digitalWrite(this->cs, HIGH);
 }
 
 SX1278::~SX1278() {

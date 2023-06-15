@@ -2,9 +2,13 @@
 #include "digitalIO.hpp"
 
 
-BMX280::BMX280(uint8_t cs) : calib_regs{0} {
+BMX280::BMX280(uint8_t cs) {
     this->cs = cs;
     this->chip_id = 0;
+
+    pinMode(this->cs, OUTPUT);
+    digitalWrite(this->cs, LOW);    //set SPI mode
+    digitalWrite(this->cs, HIGH);
 }
 BMX280::BMX280(SPIClass *spi, uint8_t cs) : BMX280(cs) {
     this->spi = spi;
@@ -45,17 +49,20 @@ void BMX280::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t m
 
 
 uint8_t BMX280::init() {
-    pinMode(this->cs, OUTPUT);
-    digitalWrite(this->cs, LOW);    //set SPI mode
-    digitalWrite(this->cs, HIGH);
+    if (this->spi == nullptr)
+        return 2;
+
+    //pinMode(this->cs, OUTPUT);
+    //digitalWrite(this->cs, LOW);    //set SPI mode
+    //digitalWrite(this->cs, HIGH);
     this->spi->init();
     
-    switch (getVersion()) {
+    switch (getId()) {
         case BMP280_SAMPLE_ID:
         case BMP280_SAMPLE2_ID:
         case BMP280_ID: this->chip_id = BMP280_ID; break;
         case BME280_ID: this->chip_id = BME280_ID; break;
-        default: this->chip_id = 0; return 0;
+        default: this->chip_id = 0; return 1;
     }
 
     //store calibrations
@@ -64,7 +71,7 @@ uint8_t BMX280::init() {
         readRegisterBurst(BME280_CALIB26_REG, calib_regs + 26, 16);
 
     setMode(BMX280_SLEEP);
-    return 1;
+    return 0;
 }
 uint8_t BMX280::init(SPIClass *spi) {
     this->spi = spi;
@@ -72,7 +79,12 @@ uint8_t BMX280::init(SPIClass *spi) {
 }
 
 
-uint8_t BMX280::getVersion() {
+void BMX280::reset() {
+    writeRegister(BMX280_RESET_REG, BMX280_RESET);
+    setMode(BMX280_SLEEP);
+}
+
+uint8_t BMX280::getId() {
     return readRegister(BMX280_ID_REG);
 }
 

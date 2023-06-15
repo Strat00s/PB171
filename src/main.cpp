@@ -6,6 +6,10 @@
 #include "pinmap.hpp"
 #include "registers.hpp"
 #include "serial.hpp"
+#include "bmx280.hpp"
+
+
+#define DELAY(x) _delay_ms(x)
 
 
 #define LORA_RST  D9
@@ -15,15 +19,13 @@
 
 #define LED_PIN D8
 
-#define BME_CS D3
-#define BME_READ  1
-#define BME_WRITE 0
+#define BMP_CS D3
 
 
 SPIClass spi = SPIClass();
 SX1278 lora = SX1278(LORA_CS, LORA_RST, LORA_IRQ, LORA_GPIO);
 Serial serial = Serial();
-
+BMX280 bmp = BMX280(BMP_CS);
 
 void blink(uint8_t cnt) {
     for (int i = 0; i < cnt; i++){
@@ -36,10 +38,6 @@ void blink(uint8_t cnt) {
 
 
 int main() {
-    pinMode(BME_CS, OUTPUT);
-    digitalWrite(BME_CS, LOW);
-    _delay_ms(100);
-    digitalWrite(BME_CS, HIGH);
     digitalWrite(LORA_CS, HIGH);
 
     pinMode(LORA_IRQ, INPUT);
@@ -50,16 +48,38 @@ int main() {
     spi.init();
     serial.println("SPI init");
 
-    for (uint8_t i = 0; i < 127; i++) {
-        serial.print("Reg 0x");
-        serial.printHex(i);
+    serial.print("LoRa init: ");
+    serial.println(lora.init(&spi, 18U, 8U, 10));
+
+    serial.print("BMP init: ");
+    serial.println(bmp.init(&spi));
+
+    serial.print("BMP ID: 0x");
+    serial.printlnHex(bmp.getId());
+
+    serial.print("BMP CTRL_MEAS: 0x");
+    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
+
+    uint8_t calib_data[26] = {0};
+    bmp.readRegisterBurst(BMX280_CALIB00_REG, calib_data, 26);
+
+    for (int i = 0; i < 26; i++) {
+        serial.print("CALIB");
+        serial.print(i);
         serial.print(": 0x");
-        digitalWrite(BME_CS, LOW);
-        _delay_ms(1);
-        serial.printlnHex(spi.readRegister(i, BME_READ));
-        _delay_ms(1);
-        digitalWrite(BME_CS, HIGH);
+        serial.printlnHex(calib_data[i]);
     }
+
+    //for (uint8_t i = 0; i < 127; i++) {
+    //    serial.print("Reg 0x");
+    //    serial.printHex(i);
+    //    serial.print(": 0x");
+    //    digitalWrite(BME_CS, LOW);
+    //    _delay_ms(1);
+    //    serial.printlnHex(spi.readRegister(i, BME_READ));
+    //    _delay_ms(1);
+    //    digitalWrite(BME_CS, HIGH);
+    //}
     return 0;
 
     lora.init(&spi, 18U, 8U, 10);
