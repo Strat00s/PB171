@@ -51,68 +51,17 @@ int main() {
     spi.init();
     serial.println("SPI init");
 
-    serial.print("LoRa init: ");
-    serial.println(lora.init(&spi, 18U, 8U, 10));
-
     serial.print("BMP init: ");
     serial.println(bmp.init(&spi));
-
     serial.print("BMP ID: 0x");
     serial.printlnHex(bmp.getId());
-
-    serial.print("BMP CTRL_MEAS: 0x");
-    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
-
-    uint8_t calib_data[26] = {0};
-    bmp.readRegisterBurst(BMX280_CALIB00_REG, calib_data, 26);
-
-    for (int i = 0; i < 26; i++) {
-        serial.print("CALIB");
-        serial.print(i);
-        serial.print(": 0x");
-        serial.printlnHex(calib_data[i]);
-    }
-
-    serial.print("ctrl_meas: 0x");
-    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
     bmp.setTemperatureOversampling(BMX280_TEMP_OVERx1);
-    serial.print("ctrl_meas: 0x");
-    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
 
-    //while(true) {
-    //    serial.println("start");
-    //    uint8_t data[8] = {0};
-    //    bmp.getAllRaw(data);
-    //    serial.println("got data");
-    //    int32_t temperature = bmp.calculateTemperature(data + 3);
-    //    serial.print("Temperature: ");
-    //    serial.println(temperature);
-    //    _delay_ms(1000);
-    //}
 
-    //for (uint8_t i = 0; i < 127; i++) {
-    //    serial.print("Reg 0x");
-    //    serial.printHex(i);
-    //    serial.print(": 0x");
-    //    digitalWrite(BME_CS, LOW);
-    //    _delay_ms(1);
-    //    serial.printlnHex(spi.readRegister(i, BME_READ));
-    //    _delay_ms(1);
-    //    digitalWrite(BME_CS, HIGH);
-    //}
-    //return 0;
-
-    lora.init(&spi, 18U, 8U, 10);
-    serial.println("LORA init");
-
-    if (!lora.init(&spi, 18U, 8U, 10)){
-        while (true) {
-            blink(2);
-            _delay_ms(100);
-        }
-    }
-
+    serial.print("LoRa init: ");
+    serial.println(lora.init(&spi, 18U, 8U, 10));
     serial.println("Chip found");
+
 
     pinMode(LED_PIN, OUTPUT);
     blink(10);
@@ -120,7 +69,7 @@ int main() {
     while(true) {
         blink(5);
         _delay_ms(2000);
-        lora.setMode(STANDBY);
+        //lora.setMode(STANDBY);
 
         uint8_t data[8] = {0};
         bmp.getAllRaw(data);
@@ -131,9 +80,9 @@ int main() {
         char message[20];
         sprintf(message, "T:%d", temperature);
         
+        lora.setMode(STANDBY);
         lora.transmit((uint8_t*)message, 20, 0, 0);
         serial.println("Message sent");
-
         lora.setMode(SLEEP);
     }
 
