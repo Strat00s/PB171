@@ -1,7 +1,16 @@
+#pragma once
+
+#include <avr/io.h>
 #include "SPIClass.hpp"
 #include "digitalIO.hpp"
+#include "SPIClass.hpp"
 
 
+//TODO error enum/defines
+
+//rw bit value
+#define BMX280_READ  1
+#define BMX280_WRITE 0
 /*----(REGISTER CONFIGURATION VALUES)----*/
 //device IDs
 #define BMP280_SAMPLE_ID      0x56
@@ -130,24 +139,101 @@
 #define BME280_CALIB41_REG    0xF0
 
 
-
-class bmx280 {
+class BMX280 {
 private:
-    uint8_t chip_version;
+    uint8_t chip_id;
+    uint8_t temperature[3];
+    uint8_t pressure[3];
+    uint8_t humidity[2];
+
+    uint8_t calib_regs[42]; //26 for temperature + pressure, 16 for humidity
+
+    uint8_t cs;
+    SPIClass *spi;
+
+    void measure();
 
 public:
-    bmx280(){};
-    ~bmx280(){};
+    BMX280(uint8_t cs);
+    BMX280(SPIClass *spi, uint8_t cs);
+    ~BMX280(){};
 
-    void getVersion();
+    uint8_t readRegister(uint8_t addr);
+    void readRegisterBurst(uint8_t addr, uint8_t *data, uint8_t length);
+    void writeRegister(uint8_t addr, uint8_t data);
+    void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);
 
-    void init();
+    uint8_t init();
+    uint8_t init(SPIClass *spi);
+
+    uint8_t getVersion();
+    uint8_t getStatus();
 
     void setMode(uint8_t mode);
+    void setTemperatureOversampling(uint8_t oversampling);
+    void setPressureOversampling(uint8_t oversampling);
+    void setHumidityOversampling(uint8_t oversampling);
+    void setIIRFilter(uint8_t filter);
+    void setStandby(uint8_t standby);
+    void set3WireSPI(uint8_t enable);
 
-    void getTemperature();
-    void getPressure();
-    void getHumidity();
-    void getAll();
+
+    /** @brief Calculate pressure
+     * 
+     * @param raw_pressure 
+     * @return uint32_t result in Q24.8 notation
+     */
+    uint32_t calculatePressure(uint8_t *raw_pressure);
+    
+    /** @brief Calculate temperature
+     * 
+     * @param raw_temperature 
+     * @return int16_t result in Q8.8 notation
+     */
+    int16_t calculateTemperature(uint8_t *raw_temperature);
+    
+    /** @brief Calculate humidity
+     * 
+     * @param raw_humidity 
+     * @return uint16_t result in Q8.8 notation
+     */
+    uint16_t calculateHumidity(uint8_t *raw_humidity);
+
+    /** @brief Measure and calculate pressure, temperature and humidity (if BME280).
+     * Forces measurement if chip is in sleep mode.
+     * 
+     * @param pressure variable to store calculated pressure
+     * @param temperature variable to store calculated temperature
+     * @param humidity variable to store calculated humidity (if BME280)
+     */
+    void getAll(uint32_t *pressure, uint16_t *temperature, uint16_t *humidity = nullptr);
+
+
+    /**
+     * @brief 
+     * 
+     * @param data array for storing raw data. Must be at least 3 bytes long
+     */
+    void getPressureRaw(uint8_t *data);
+
+    /** @brief 
+     * 
+     * @param data array for storing raw data. Must be at least 3 bytes long
+     */
+    void getTemperatureRaw(uint8_t *data);
+
+    /** @brief 
+     * 
+     * @param data array for storing raw data. Must be at least 2 bytes long
+     */
+    void getHumidityRaw(uint8_t *data);
+
+    /** @brief Retrieves all possible raw data for specific chip
+     * If chip is in normal mode, copyies current register value
+     * If chip is in sleep mode, forces one time measurement
+     * 
+     * @param data pointer to an array of at least 8 bytes 
+     */
+    void getAllRaw(uint8_t *data);
 };
 

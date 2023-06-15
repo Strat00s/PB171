@@ -32,19 +32,18 @@ void SPIClass::init() {
 }
 
 
-void SPIClass::setReadWrite(uint8_t addr, uint8_t rw) {
-    if (rw)
-        transfer(MSB_1(addr));
-    else
-        transfer(MSB_0(addr));
-}
-
-
 uint8_t SPIClass::transfer(uint8_t data) {
     SPDR = data;
     asm volatile("nop");
     while (!(SPSR & (1 << SPIF)));
     return SPDR;
+}
+
+void SPIClass::setReadWrite(uint8_t addr, uint8_t rw) {
+    if (rw)
+        transfer(MSB_1(addr));
+    else
+        transfer(MSB_0(addr));
 }
 
 uint8_t SPIClass::readRegister(uint8_t addr, uint8_t rw) {
