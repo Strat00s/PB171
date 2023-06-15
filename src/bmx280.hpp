@@ -131,6 +131,7 @@
 #define BME280_CALIB30_REG    0xE5
 #define BME280_CALIB31_REG    0xE6
 #define BME280_CALIB32_REG    0xE7
+//unused (9)
 #define BME280_CALIB33_REG    0xE8
 #define BME280_CALIB34_REG    0xE9
 #define BME280_CALIB35_REG    0xEA
@@ -142,6 +143,30 @@
 #define BME280_CALIB41_REG    0xF0
 
 
+typedef struct {
+    uint16_t dig_T1;    //0x88 / 0x89      | dig_T1 [7:0] / [15:8] | unsigned shor
+    int16_t  dig_T2;    //0x8A / 0x8B      | dig_T2 [7:0] / [15:8] | signed short
+    int16_t  dig_T3;    //0x8C / 0x8D      | dig_T3 [7:0] / [15:8] | signed short
+    uint16_t dig_P1;    //0x8E / 0x8F      | dig_P1 [7:0] / [15:8] | unsigned shor
+    int16_t  dig_P2;    //0x90 / 0x91      | dig_P2 [7:0] / [15:8] | signed short
+    int16_t  dig_P3;    //0x92 / 0x93      | dig_P3 [7:0] / [15:8] | signed short
+    int16_t  dig_P4;    //0x94 / 0x95      | dig_P4 [7:0] / [15:8] | signed short
+    int16_t  dig_P5;    //0x96 / 0x97      | dig_P5 [7:0] / [15:8] | signed short
+    int16_t  dig_P6;    //0x98 / 0x99      | dig_P6 [7:0] / [15:8] | signed short
+    int16_t  dig_P7;    //0x9A / 0x9B      | dig_P7 [7:0] / [15:8] | signed short
+    int16_t  dig_P8;    //0x9C / 0x9D      | dig_P8 [7:0] / [15:8] | signed short
+    int16_t  dig_P9;    //0x9E / 0x9F      | dig_P9 [7:0] / [15:8] | signed short
+
+    //0xA1,0xA0 reserved in BMP280, A0 not used in BME280
+    uint8_t  dig_H1;    //0xA1             | dig_H1 [7:0]          | unsigned char
+    int16_t  dig_H2;    //0xE1 / 0xE2      | dig_H2 [7:0] / [15:8] | signed short
+    uint8_t  dig_H3;    //0xE3             | dig_H3 [7:0]          | unsigned char
+    int16_t  dig_H4;    //0xE4 / 0xE5[3:0] | dig_H4 [11:4] / [3:0] | signed short
+    int16_t  dig_H5;    //0xE5[7:4] / 0xE6 | dig_H5 [3:0] / [11:4] | signed short
+    int8_t   dig_H6;    //0xE7             | dig_H6                | signed char
+} comp_parameters_t;
+
+
 class BMX280 {
 private:
     uint8_t chip_id;
@@ -149,7 +174,7 @@ private:
     uint8_t pressure[3];
     uint8_t humidity[2];
 
-    uint8_t calib_regs[42] = {0}; //26 for temperature + pressure, 16 for humidity
+    //uint8_t calib_regs[42] = {0}; //26 for temperature + pressure, 16 for humidity
 
     uint8_t cs;
     SPIClass *spi = nullptr;
@@ -157,6 +182,8 @@ private:
     void measure();
 
 public:
+    comp_parameters_t comp_params;
+
     BMX280(uint8_t cs);
     BMX280(SPIClass *spi, uint8_t cs);
     ~BMX280(){};
@@ -188,21 +215,21 @@ public:
      * @param raw_pressure 
      * @return uint32_t result in Q24.8 notation
      */
-    uint32_t calculatePressure(uint8_t *raw_pressure);
+    uint32_t calculatePressure(uint8_t *raw_p);
     
     /** @brief Calculate temperature
      * 
      * @param raw_temperature 
      * @return int16_t result in Q8.8 notation
      */
-    int16_t calculateTemperature(uint8_t *raw_temperature);
+    int32_t calculateTemperature(uint8_t *raw_t);
     
     /** @brief Calculate humidity
      * 
      * @param raw_humidity 
      * @return uint16_t result in Q8.8 notation
      */
-    uint16_t calculateHumidity(uint8_t *raw_humidity);
+    uint16_t calculateHumidity(uint8_t *raw_h);
 
     /** @brief Measure and calculate pressure, temperature and humidity (if BME280).
      * Forces measurement if chip is in sleep mode.
@@ -236,7 +263,7 @@ public:
     /** @brief Retrieves all possible raw data for specific chip
      * If chip is in normal mode, copyies current register value
      * If chip is in sleep mode, forces one time measurement
-     * 
+     * If oversampling is disabled, enables x1 for everything
      * @param data pointer to an array of at least 8 bytes 
      */
     void getAllRaw(uint8_t *data);

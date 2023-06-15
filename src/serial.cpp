@@ -29,35 +29,48 @@ void Serial::println(const char *str) {
     print("\r\n");
 }
 
-void Serial::print(int num) {
-    char buffer[12];
-    itoa(num, buffer, 10);
+
+void Serial::print(int32_t num) {
+    char buffer[20];
+    ltoa(num, buffer, 10);
     print(buffer);
 }
 
-void Serial::println(int num) {
+void Serial::println(int32_t num) {
     print(num);
     print("\r\n");
 }
 
-void Serial::print(float num) {
+void Serial::printU(uint32_t num) {
+    char buffer[20];
+    ultoa(num, buffer, 10);
+    print(buffer);
+}
+
+void Serial::printlnU(uint32_t num) {
+    printU(num);
+    print("\r\n");
+}
+
+
+void Serial::printF(float num) {
     char buffer[32];
     dtostrf(num, 4, 2, buffer); // Float to string
     print(buffer);
 }
 
-void Serial::println(float num) {
+void Serial::printlnF(float num) {
     print(num);
     print("\r\n");
 }
 
-void Serial::printHex(int num) {
+void Serial::printHex(uint32_t num) {
     char buffer[12];
-    itoa(num, buffer, 16);
+    ultoa(num, buffer, 16);
     print(buffer);
 }
 
-void Serial::printlnHex(int num) {
+void Serial::printlnHex(uint32_t num) {
     printHex(num);
     print("\r\n");
 }

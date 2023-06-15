@@ -35,16 +35,12 @@ void BMX280::writeRegister(uint8_t addr, uint8_t data) {
 }
 
 void BMX280::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t mask_msb) {
-    digitalWrite(this->cs, LOW);
-    uint8_t reg = this->spi->readRegister(addr, BMX280_READ);
-    digitalWrite(this->cs, HIGH);
+    uint8_t reg = readRegister(addr);
 
     uint8_t mask = ~(0xFF >> (8 - mask_lsb) | 0xFF << (mask_msb + 1));
     data = (reg & ~mask) | (data & mask);
 
-    digitalWrite(this->cs, LOW);
-    this->spi->writeRegister(addr, data, BMX280_WRITE);
-    digitalWrite(this->cs, HIGH);
+    writeRegister(addr, data);
 }
 
 
@@ -66,9 +62,30 @@ uint8_t BMX280::init() {
     }
 
     //store calibrations
-    readRegisterBurst(BMX280_CALIB00_REG, calib_regs, 26);
+    uint8_t c_reg[33] = {0};
+    readRegisterBurst(BMX280_CALIB00_REG, c_reg, 26);
     if (this->chip_id == BME280_ID)
-        readRegisterBurst(BME280_CALIB26_REG, calib_regs + 26, 16);
+        readRegisterBurst(BME280_CALIB26_REG, c_reg + 26, 7);
+
+    comp_params.dig_T1 = ((uint16_t)(c_reg[1]) << 8) | (c_reg[0]);          //0x88 / 0x89      | dig_T1 [7:0] / [15:8] | unsigned short
+    comp_params.dig_T2 = ((int16_t)(c_reg[3])  << 8) | (c_reg[2]);          //0x8A / 0x8B      | dig_T2 [7:0] / [15:8] | signed short
+    comp_params.dig_T3 = ((int16_t)(c_reg[5])  << 8) | (c_reg[4]);          //0x8C / 0x8D      | dig_T3 [7:0] / [15:8] | signed short
+    
+    comp_params.dig_P1 = ((uint16_t)(c_reg[7]) << 8) | (c_reg[6]);          //0x8E / 0x8F      | dig_P1 [7:0] / [15:8] | unsigned short
+    comp_params.dig_P2 = ((int16_t)(c_reg[9])  << 8) | (c_reg[8]);          //0x90 / 0x91      | dig_P2 [7:0] / [15:8] | signed short
+    comp_params.dig_P3 = ((int16_t)(c_reg[11]) << 8) | (c_reg[10]);         //0x92 / 0x93      | dig_P3 [7:0] / [15:8] | signed short
+    comp_params.dig_P4 = ((int16_t)(c_reg[13]) << 8) | (c_reg[12]);         //0x94 / 0x95      | dig_P4 [7:0] / [15:8] | signed short
+    comp_params.dig_P5 = ((int16_t)(c_reg[15]) << 8) | (c_reg[14]);         //0x96 / 0x97      | dig_P5 [7:0] / [15:8] | signed short
+    comp_params.dig_P6 = ((int16_t)(c_reg[17]) << 8) | (c_reg[16]);         //0x98 / 0x99      | dig_P6 [7:0] / [15:8] | signed short
+    comp_params.dig_P7 = ((int16_t)(c_reg[19]) << 8) | (c_reg[18]);         //0x9A / 0x9B      | dig_P7 [7:0] / [15:8] | signed short
+    comp_params.dig_P8 = ((int16_t)(c_reg[21]) << 8) | (c_reg[20]);         //0x9C / 0x9D      | dig_P8 [7:0] / [15:8] | signed short
+    comp_params.dig_P9 = ((int16_t)(c_reg[23]) << 8) | (c_reg[22]);         //0x9E / 0x9F      | dig_P9 [7:0] / [15:8] | signed short
+    comp_params.dig_H1 = (uint8_t)c_reg[25];                                //0xA1             | dig_H1 [7:0]          | unsigned char
+    comp_params.dig_H2 = ((int16_t)(c_reg[27]) << 8) | (c_reg[26]);         //0xE1 / 0xE2      | dig_H2 [7:0] / [15:8] | signed short
+    comp_params.dig_H3 = (uint8_t)c_reg[28];                                //0xE3             | dig_H3 [7:0]          | unsigned char
+    comp_params.dig_H4 = ((int16_t)(c_reg[29]) << 4) | (c_reg[30] & 0x0F);  //0xE4 / 0xE5[3:0] | dig_H4 [11:4] / [3:0] | signed short
+    comp_params.dig_H5 = ((int16_t)(c_reg[31]) << 4) | (c_reg[30] >> 4);    //0xE5[7:4] / 0xE6 | dig_H5 [3:0] / [11:4] | signed short
+    comp_params.dig_H6 = (int8_t)c_reg[32];                                 //0xE7             | dig_H6                | signed char
 
     setMode(BMX280_SLEEP);
     return 0;
@@ -98,10 +115,10 @@ void BMX280::setMode(uint8_t mode) {
 }
 
 void BMX280::setTemperatureOversampling(uint8_t oversampling) {
-    setRegister(BMX280_CTRL_MEAS_REG, oversampling, 2, 4);
+    setRegister(BMX280_CTRL_MEAS_REG, oversampling, 5, 7);
 }
 void BMX280::setPressureOversampling(uint8_t oversampling) {
-    setRegister(BMX280_CTRL_MEAS_REG, oversampling, 5, 7);
+    setRegister(BMX280_CTRL_MEAS_REG, oversampling, 2, 4);
 }
 void BMX280::setHumidityOversampling(uint8_t oversampling) {
     setRegister(BME280_CTRL_HUM_REG, oversampling, 0, 2);
@@ -118,17 +135,26 @@ void BMX280::set3WireSPI(uint8_t enable) {
 }
 
 
-
-uint32_t BMX280::calculatePressure(uint8_t *raw_pressure) {
-
+uint32_t BMX280::calculatePressure(uint8_t *raw_p) {
+    int32_t raw_p32 = (uint32_t)(raw_p[0] << 12) | (uint16_t)(raw_p[1] << 4) | (raw_p[2] >> 4);
 }
 
-int16_t BMX280::calculateTemperature(uint8_t *raw_temperature) {
+int32_t t_fine;
 
+int32_t BMX280::calculateTemperature(uint8_t *raw_t) {
+    int32_t var1, var2, T;
+    int32_t raw_t32 = ((uint32_t)raw_t[0] << 12) |
+                      ((uint32_t)raw_t[1] << 4)  |
+                      ((uint32_t)raw_t[2] >> 4);
+    var1 = ((((raw_t32 >> 3) - ((int32_t)this->comp_params.dig_T1 << 1))) * ((int32_t)this->comp_params.dig_T2)) >> 11;
+    var2 = (((((raw_t32 >> 4) - ((int32_t)this->comp_params.dig_T1)) * ((raw_t32 >> 4) - ((int32_t)this->comp_params.dig_T1))) >> 12) * ((int32_t)this->comp_params.dig_T3)) >> 14;
+    t_fine = var1 + var2;
+    T = (t_fine * 5 + 128) >> 8;
+    return T;
 }
 
-uint16_t BMX280::calculateHumidity(uint8_t *raw_humidity) {
-
+uint16_t BMX280::calculateHumidity(uint8_t *raw_h) {
+    int16_t raw_h16 = (uint16_t)(raw_h[0] << 8) | raw_h[1];
 }
 
 void BMX280::getAll(uint32_t *pressure, uint16_t *temperature, uint16_t *humidity) {
@@ -160,6 +186,17 @@ void BMX280::getHumidityRaw(uint8_t *data) {
 }
 
 void BMX280::getAllRaw(uint8_t *data) {
+    uint8_t reg = readRegister(BMX280_CTRL_MEAS_REG);
+    //enable temperature oversampling
+    if (!(reg & 0b11100000))
+        setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    //enable pressure oversampling
+    if (!(reg & 0b00011100))
+        setPressureOversampling(BMX280_PRES_OVERx1);
+    //enable humidity oversampling on BME280
+    if (this->chip_id == BME280_ID && !(readRegister(BME280_CTRL_HUM_REG) & 0b00000111))
+        setHumidityOversampling(BME280_HUM_OVERx1);
+
     measure();
 
     if (this->chip_id == BME280_ID)
@@ -170,9 +207,9 @@ void BMX280::getAllRaw(uint8_t *data) {
 
 void BMX280::measure() {
     //start one time measurement
-    if (readRegister(BMX280_CTRL_MEAS_REG) & BMX280_SLEEP)
+    if (!(readRegister(BMX280_CTRL_MEAS_REG) & 0b00000011))
         setMode(BMX280_FORCED);
 
     //wait for a measurement to finish
-    while (!(readRegister(BMX280_STATUS_REG) & 0b00001000));
+    while ((readRegister(BMX280_STATUS_REG) & 0b00001000));
 }

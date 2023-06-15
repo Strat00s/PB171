@@ -1,5 +1,8 @@
 #include <avr/io.h>
 #include <util/delay.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "SPIClass.hpp"
 #include "digitalIO.hpp"
 #include "SX1278.hpp"
@@ -70,6 +73,23 @@ int main() {
         serial.printlnHex(calib_data[i]);
     }
 
+    serial.print("ctrl_meas: 0x");
+    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
+    bmp.setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    serial.print("ctrl_meas: 0x");
+    serial.printlnHex(bmp.readRegister(BMX280_CTRL_MEAS_REG));
+
+    //while(true) {
+    //    serial.println("start");
+    //    uint8_t data[8] = {0};
+    //    bmp.getAllRaw(data);
+    //    serial.println("got data");
+    //    int32_t temperature = bmp.calculateTemperature(data + 3);
+    //    serial.print("Temperature: ");
+    //    serial.println(temperature);
+    //    _delay_ms(1000);
+    //}
+
     //for (uint8_t i = 0; i < 127; i++) {
     //    serial.print("Reg 0x");
     //    serial.printHex(i);
@@ -80,7 +100,7 @@ int main() {
     //    _delay_ms(1);
     //    digitalWrite(BME_CS, HIGH);
     //}
-    return 0;
+    //return 0;
 
     lora.init(&spi, 18U, 8U, 10);
     serial.println("LORA init");
@@ -102,8 +122,16 @@ int main() {
         _delay_ms(2000);
         lora.setMode(STANDBY);
 
-        char message[] = "test";
-        lora.transmit((uint8_t*)message, 5, 0, 0);
+        uint8_t data[8] = {0};
+        bmp.getAllRaw(data);
+        int32_t temperature = bmp.calculateTemperature(data + 3);
+        serial.print("Temperature: ");
+        serial.println(temperature);
+
+        char message[20];
+        sprintf(message, "T:%d", temperature);
+        
+        lora.transmit((uint8_t*)message, 20, 0, 0);
         serial.println("Message sent");
 
         lora.setMode(SLEEP);

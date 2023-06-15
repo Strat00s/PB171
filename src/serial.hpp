@@ -12,12 +12,14 @@ public:
     void print(const char *str);
     void println(const char *str);
 
-    void print(int num);
-    void println(int num);
+    void print(int32_t num);
+    void println(int32_t num);
+    void printU(uint32_t num);
+    void printlnU(uint32_t num);
 
-    void print(float num);
-    void println(float num);
+    void printF(float num);
+    void printlnF(float num);
 
-    void printHex(int num);
-    void printlnHex(int num);
+    void printHex(uint32_t num);
+    void printlnHex(uint32_t num);
 };
