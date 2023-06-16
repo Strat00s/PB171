@@ -1,3 +1,14 @@
+/**
+ * @file serial.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief 
+ * @version 0.1
+ * @date 16-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #pragma once
 #include <avr/io.h>
 

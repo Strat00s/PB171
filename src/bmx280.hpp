@@ -1,9 +1,23 @@
+/**
+ * @file bmx280.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief 
+ * @version 0.1
+ * @date 16-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ * @details small library for BMP280 and BME280 sensors
+ * all important formulas and values taken from: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
+ */
+
 #pragma once
 
 #include <avr/io.h>
 #include "SPIClass.hpp"
 #include "digitalIO.hpp"
 #include "SPIClass.hpp"
+
 
 
 //TODO error enum/defines
@@ -179,10 +193,12 @@ private:
     uint8_t cs;
     SPIClass *spi = nullptr;
 
+    int32_t t_fine; //last temperature measurement for compensation
+    comp_parameters_t comp_params;
+
     void measure();
 
 public:
-    comp_parameters_t comp_params;
 
     BMX280(uint8_t cs);
     BMX280(SPIClass *spi, uint8_t cs);
@@ -210,61 +226,107 @@ public:
     void set3WireSPI(uint8_t enable);
 
 
+    /** @brief Calculate temperature
+     * 
+     * @param raw_t 3 byte array containing 20bit raw value from registers
+     * @return int16_t - temperature in hundredths of a degree C
+     */
+    int16_t calculateTemperature(uint8_t *raw_t);
+
     /** @brief Calculate pressure
      * 
-     * @param raw_pressure 
-     * @return uint32_t result in Q24.8 notation
+     * @param raw_p 3 byte array containing 20bit raw value from registers
+     * @return uint32_t - pressure in Pa
+     * 
+     * @warning Expects that a temperature was already calculated
      */
     uint32_t calculatePressure(uint8_t *raw_p);
     
-    /** @brief Calculate temperature
-     * 
-     * @param raw_temperature 
-     * @return int16_t result in Q8.8 notation
-     */
-    int32_t calculateTemperature(uint8_t *raw_t);
-    
     /** @brief Calculate humidity
      * 
-     * @param raw_humidity 
-     * @return uint16_t result in Q8.8 notation
+     * @param raw_h 2 byte array containing 16bit raw value from registers
+     * @return uint16_t - result in Q8.8 notation
+     * 
+     * @warning Expects that a temperature was already calculated
      */
     uint16_t calculateHumidity(uint8_t *raw_h);
 
-    /** @brief Measure and calculate pressure, temperature and humidity (if BME280).
-     * Forces measurement if chip is in sleep mode.
+
+    /** @brief Measures and calculates temperature
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Sets x1 oversampling if oversampling is disabled
+     * 
+     * @param data array for storing raw data. Must be at least 3 bytes long
+     */
+    int16_t getTemperature();
+
+    /** @brief Measures and retrieves raw pressure data
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Takes temperature measurement for compensation
+     * @note Sets x1 oversampling if oversampling is disabled
+     * 
+     * @param data array for storing raw data. Must be at least 3 bytes long
+     */
+    uint32_t getPressure();
+
+    /** @brief Measures and retrieves raw humidity data
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Takes temperature measurement for compensation
+     * @note Sets x1 oversampling if oversampling is disabled
+     * 
+     * @param data array for storing raw data. Must be at least 2 bytes long
+     */
+    uint16_t getHumidity();
+
+    /** @brief Measure and calculate pressure, temperature and humidity (if BME280)
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Sets x1 oversampling if oversampling is disabled
      * 
      * @param pressure variable to store calculated pressure
      * @param temperature variable to store calculated temperature
      * @param humidity variable to store calculated humidity (if BME280)
      */
-    void getAll(uint32_t *pressure, uint16_t *temperature, uint16_t *humidity = nullptr);
+    void getAll(int16_t *temperature, uint32_t *pressure, uint16_t *humidity = nullptr);
 
 
-    /**
-     * @brief 
+    /** @brief Measures and retrieves raw temperature data
      * 
-     * @param data array for storing raw data. Must be at least 3 bytes long
-     */
-    void getPressureRaw(uint8_t *data);
-
-    /** @brief 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Sets x1 oversampling if oversampling is disabled
      * 
      * @param data array for storing raw data. Must be at least 3 bytes long
      */
     void getTemperatureRaw(uint8_t *data);
 
-    /** @brief 
+    /** @brief Measures and retrieves raw pressure data
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Takes temperature measurement for compensation
+     * @note Sets x1 oversampling if oversampling is disabled
+     * 
+     * @param data array for storing raw data. Must be at least 3 bytes long
+     */
+    void getPressureRaw(uint8_t *data);
+
+    /** @brief Measures and retrieves raw humidity data
+     * 
+     * @note Forces measurement if chip is in sleep mode
+     * @note Takes temperature measurement for compensation
+     * @note Sets x1 oversampling if oversampling is disabled
      * 
      * @param data array for storing raw data. Must be at least 2 bytes long
      */
     void getHumidityRaw(uint8_t *data);
 
-    /** @brief Retrieves all possible raw data for specific chip
-     * If chip is in normal mode, copyies current register value
-     * If chip is in sleep mode, forces one time measurement
-     * If oversampling is disabled, enables x1 for everything
-     * @param data pointer to an array of at least 8 bytes 
+    /** @brief Measures and retrieves temperature, pressure (and humidity if BME280)
+     *  
+     * @note Forces measurement if chip is in sleep mode
+     * @note Sets x1 oversampling if oversampling is disabled
+     * @param data pointer to an array of at least 6 bytes to store everything (8 bytes for BME280)
      */
     void getAllRaw(uint8_t *data);
 };

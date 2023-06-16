@@ -1,3 +1,14 @@
+/**
+ * @file bmx280.cpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief 
+ * @version 0.1
+ * @date 16-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "bmx280.hpp"
 #include "digitalIO.hpp"
 
@@ -135,29 +146,100 @@ void BMX280::set3WireSPI(uint8_t enable) {
 }
 
 
-uint32_t BMX280::calculatePressure(uint8_t *raw_p) {
-    int32_t raw_p32 = (uint32_t)(raw_p[0] << 12) | (uint16_t)(raw_p[1] << 4) | (raw_p[2] >> 4);
-}
-
-int32_t t_fine;
-
-int32_t BMX280::calculateTemperature(uint8_t *raw_t) {
-    int32_t var1, var2, T;
+int16_t BMX280::calculateTemperature(uint8_t *raw_t) {
+    int32_t var1, var2;
     int32_t raw_t32 = ((uint32_t)raw_t[0] << 12) |
                       ((uint32_t)raw_t[1] << 4)  |
                       ((uint32_t)raw_t[2] >> 4);
     var1 = ((((raw_t32 >> 3) - ((int32_t)this->comp_params.dig_T1 << 1))) * ((int32_t)this->comp_params.dig_T2)) >> 11;
     var2 = (((((raw_t32 >> 4) - ((int32_t)this->comp_params.dig_T1)) * ((raw_t32 >> 4) - ((int32_t)this->comp_params.dig_T1))) >> 12) * ((int32_t)this->comp_params.dig_T3)) >> 14;
-    t_fine = var1 + var2;
-    T = (t_fine * 5 + 128) >> 8;
-    return T;
+    this->t_fine = var1 + var2;
+    return (this->t_fine * 5 + 128) >> 8;
+}
+
+uint32_t BMX280::calculatePressure(uint8_t *raw_p) {
+    int32_t raw_p32 = ((uint32_t)raw_p[0] << 12) |
+                      ((uint16_t)raw_p[1] << 4) |
+                                (raw_p[2] >> 4);
+    int32_t var1, var2;
+    uint32_t p;
+    var1 = (((int32_t)this->t_fine) >> 1) - (int32_t)64000;
+    var2 = (((var1 >> 2) * (var1 >> 2)) >> 11 ) * ((int32_t)this->comp_params.dig_P6);
+    var2 = var2 + ((var1 * ((int32_t)this->comp_params.dig_P5)) << 1);
+    var2 = (var2 >> 2) + (((int32_t)this->comp_params.dig_P4) << 16);
+    var1 = (((this->comp_params.dig_P3 * (((var1 >> 2) * (var1 >> 2)) >> 13 )) >> 3) + ((((int32_t)this->comp_params.dig_P2) * var1) >> 1)) >> 18;
+    var1 =((((32768 + var1)) * ((int32_t)this->comp_params.dig_P1)) >> 15);
+
+    //divison by zero
+    if (var1 == 0)
+        return 0; // avoid exception caused by division by zero
+
+    p = (((uint32_t)(((int32_t)1048576) - raw_p32) - (var2 >> 12))) * 3125;
+    if (p < 0x80000000)
+        p = (p << 1) / ((uint32_t)var1);
+    else
+        p = (p / (uint32_t)var1) * 2;
+    var1 = (((int32_t)this->comp_params.dig_P9) * ((int32_t)(((p >> 3) * (p >> 3)) >> 13))) >> 12;
+    var2 = (((int32_t)(p >> 2)) * ((int32_t)this->comp_params.dig_P8)) >> 13;
+    p = (uint32_t)((int32_t)p + ((var1 + var2 + this->comp_params.dig_P7) >> 4));
+    return p;
 }
 
 uint16_t BMX280::calculateHumidity(uint8_t *raw_h) {
-    int16_t raw_h16 = (uint16_t)(raw_h[0] << 8) | raw_h[1];
+    int16_t raw_h16 = ((uint16_t)raw_h[0] << 8) | raw_h[1];
+    //TODO
 }
 
-void BMX280::getAll(uint32_t *pressure, uint16_t *temperature, uint16_t *humidity) {
+
+int16_t BMX280::getTemperature() {
+    //set temperature oversampling
+    if (!(readRegister(BMX280_CTRL_MEAS_REG) & 0b11100000))
+        setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    
+    measure();
+
+    uint8_t data[3] = {0};
+    getTemperatureRaw(data);
+    return calculateTemperature(data);
+}
+
+uint32_t BMX280::getPressure() {
+    uint8_t reg = readRegister(BMX280_CTRL_MEAS_REG);
+    //enable temperature oversampling
+    if (!(reg & 0b11100000))
+        setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    //enable pressure oversampling
+    if (!(reg & 0b00011100))
+        setPressureOversampling(BMX280_PRES_OVERx1);
+
+    measure();
+
+    uint8_t data[6] = {0};
+    readRegisterBurst(BMX280_PRESS_MSB_REG, data, 6);
+    calculateTemperature(data + 3);
+    return calculatePressure(data);
+}
+
+uint16_t BMX280::getHumidity() {
+    if (this->chip_id != BME280_ID)
+        return 0;
+
+    //enable temperature oversampling
+    if (!(readRegister(BMX280_CTRL_MEAS_REG) & 0b11100000))
+        setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    //enable humidity oversampling on BME280
+    if (!(readRegister(BME280_CTRL_HUM_REG) & 0b00000111))
+        setHumidityOversampling(BME280_HUM_OVERx1);
+
+    measure();
+
+    uint8_t data[5] = {0};
+    readRegisterBurst(BMX280_TEMP_MSB_REG, data, 5);
+    calculateTemperature(data);
+    return calculateHumidity(data + 3);
+}
+
+void BMX280::getAll(int16_t *temperature, uint32_t *pressure, uint16_t *humidity) {
     uint8_t raw_data[8];
     getAllRaw(raw_data);
 
@@ -166,6 +248,7 @@ void BMX280::getAll(uint32_t *pressure, uint16_t *temperature, uint16_t *humidit
     if (this->chip_id == BME280_ID || humidity != nullptr)
         *humidity = calculateHumidity(raw_data + 6);
 }
+
 
 void BMX280::getPressureRaw(uint8_t *data) {
     measure();
@@ -187,12 +270,15 @@ void BMX280::getHumidityRaw(uint8_t *data) {
 
 void BMX280::getAllRaw(uint8_t *data) {
     uint8_t reg = readRegister(BMX280_CTRL_MEAS_REG);
+    
     //enable temperature oversampling
     if (!(reg & 0b11100000))
         setTemperatureOversampling(BMX280_TEMP_OVERx1);
+    
     //enable pressure oversampling
     if (!(reg & 0b00011100))
         setPressureOversampling(BMX280_PRES_OVERx1);
+    
     //enable humidity oversampling on BME280
     if (this->chip_id == BME280_ID && !(readRegister(BME280_CTRL_HUM_REG) & 0b00000111))
         setHumidityOversampling(BME280_HUM_OVERx1);
