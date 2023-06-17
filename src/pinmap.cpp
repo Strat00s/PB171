@@ -1,4 +1,5 @@
 #include "pinmap.hpp"
+#if defined (__AVR_ATmega328P__)
 
 pinmap_t pinmap[20] {
     {PD0, _PORTD, _DDRD, _PIND},   //D0
@@ -24,17 +25,42 @@ pinmap_t pinmap[20] {
     {PC5, _PORTC, _DDRC, _PINC}    //A5
 };
 
-uint8_t getPort(uint8_t pin) {
-    return pinmap[pin].port;
-}
-
 uint8_t getDir(uint8_t pin) {
     return pinmap[pin].ddr;
+}
+
+uint8_t getPort(uint8_t pin) {
+    return pinmap[pin].port;
 }
 
 uint8_t getIn(uint8_t pin) {
     return pinmap[pin].in;
 }
+
+
+#elif defined (__AVR_ATtiny1624__)
+
+pinmap_t pinmap[12] {
+    {0, &PORTA},   //A0
+    {1, &PORTA},   //A1
+    {2, &PORTA},   //A2
+    {3, &PORTA},   //A3
+    {4, &PORTA},   //A4
+    {5, &PORTA},   //A5
+    {6, &PORTA},   //A6
+    {7, &PORTA},   //A7
+    {0, &PORTB},   //B0
+    {1, &PORTB},   //B1
+    {2, &PORTB},   //B2
+    {3, &PORTB}    //B3
+};
+
+
+PORT_t *getPort(uint8_t pin) {
+    return pinmap[pin].port;
+}
+
+#endif
 
 uint8_t getPin(uint8_t pin) {
     return pinmap[pin].pin;

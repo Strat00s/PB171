@@ -1,3 +1,4 @@
+#if defined (__AVR_ATmega328P__)
 #include "registers.hpp"
 
 void unsetBit(uint8_t reg, uint8_t bit) {
@@ -89,3 +90,5 @@ uint8_t readBit(uint8_t reg, uint8_t bit) {
         return (PINC & (1 << bit)) ? 1 : 0;
     }
 }
+
+#endif

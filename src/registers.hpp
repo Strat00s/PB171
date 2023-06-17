@@ -1,3 +1,5 @@
+#if defined (__AVR_ATmega328P__)
+
 #pragma once
 #include <avr/io.h>
 
@@ -16,3 +18,5 @@
 void unsetBit(uint8_t reg, uint8_t bit);
 void setBit(uint8_t reg, uint8_t bit);
 uint8_t readBit(uint8_t reg, uint8_t bit);
+
+#endif

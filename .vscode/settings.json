@@ -2,14 +2,16 @@
     "AVR.reporter.arguments": [
         "-C"
     ],
-    "AVR.source.compiler": "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avr8-gnu-toolchain-win32_x86_64\\bin\\avr-gcc.exe",
+    "AVR.source.compiler": "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avr-gcc-12.1.0-x64-windows\\bin\\avr-gcc.exe",
     "AVR.programmer.tool": "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avrdude-v7.1-windows-x64\\avrdude.exe",
     "AVR.programmer.definitions": "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avrdude-v7.1-windows-x64\\avrdude.conf",
     "AVR.source.libraries": [
-        "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avr8-gnu-toolchain-win32_x86_64\\avr\\include"
+        "C:\\Users\\Stratos\\Documents\\0_projects\\pb171\\tools\\avr-gcc-12.1.0-x64-windows\\avr\\include"
     ],
     "files.associations": {
         "delay.h": "c",
-        "io.h": "c"
+        "io.h": "c",
+        "*.in": "cpp",
+        "*.def": "cpp"
     }
 }

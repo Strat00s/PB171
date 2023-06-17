@@ -18,7 +18,7 @@
         {
             "label": "Upload",
             "type": "shell",
-            "command": "${workspaceFolder}/scripts/upload.bat ${workspaceFolder} COM15",
+            "command": "${workspaceFolder}/scripts/upload.bat ${workspaceFolder} COM18",
             "dependsOn": "Build",
             "group": "test",
             "presentation": {

@@ -1,10 +1,11 @@
 #pragma once
 
-//Arduino UNO pin mapping
+//atmega328p and attiny1624 pin mapping
 
 #include <avr/io.h>
-#include "registers.hpp"
 
+#if defined (__AVR_ATmega328P__)
+#include "registers.hpp"
 //digital pins
 #define D0   0  //PD0
 #define D1   1  //PD1
@@ -39,17 +40,60 @@
 #define _PINC  8
 
 
-typedef struct pinmap_t {
+typedef struct {
     uint8_t pin;
     uint8_t port;
     uint8_t ddr;
     uint8_t in;
 } pinmap_t;
 
+
 uint8_t getPort(uint8_t pin);
 
 uint8_t getDir(uint8_t pin);
 
 uint8_t getIn(uint8_t pin);
+¨
+
+#elif defined (__AVR_ATtiny1624__)
+
+#define PA0 0
+#define PA1 1
+#define PA2 2
+#define PA3 3
+#define PA4 4
+#define PA5 5
+#define PA6 6
+#define PA7 7
+
+#define PB0 8
+#define PB1 9
+#define PB2 10
+#define PB3 11
+
+//SPI
+#define MOSI PA1
+#define MISO PA2
+#define SCK  PA3
+#define SS   PA4
+//I2C
+#define SDA PB1
+#define SCL PB0
+//UART0
+#define TX0 PB2
+#define RX0 PB3
+//UART1
+#define TX1 PA1
+#define RX1 PA2
+
+typedef struct {
+    uint8_t pin;
+    PORT_t *port;
+} pinmap_t;
+
+
+PORT_t *getPort(uint8_t pin);
+
+#endif
 
 uint8_t getPin(uint8_t pin);
