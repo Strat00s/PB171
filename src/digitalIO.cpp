@@ -2,6 +2,8 @@
 #include "digitalIO.hpp"
 #include "pinmap.hpp"
 
+//TODO check for valid pins
+
 #if defined (__AVR_ATmega328P__)
 
 void pinMode(uint8_t pin, uint8_t mode) {

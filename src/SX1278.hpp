@@ -106,8 +106,7 @@ class SX1278 {
 private:
     /* data */
     SPIClass *spi;
-    uint8_t irq;
-    uint8_t gpio;
+    uint8_t dio0;
     uint8_t cs;
     uint8_t rst;
 
@@ -115,7 +114,7 @@ private:
     uint8_t finishTransmission();
 
 public:
-    SX1278(uint8_t cs, uint8_t rst, uint8_t irq, uint8_t gpio);
+    SX1278(uint8_t cs, uint8_t rst, uint8_t dio0);
     ~SX1278();
 
     void reset();

@@ -2,11 +2,10 @@
 #include "SX1278.hpp"
 #include "digitalIO.hpp"
 
-SX1278::SX1278(uint8_t cs, uint8_t rst, uint8_t irq, uint8_t gpio) {
+SX1278::SX1278(uint8_t cs, uint8_t rst, uint8_t dio) {
     this->cs   = cs;
     this->rst  = rst;
-    this->irq  = irq;
-    this->gpio = gpio;
+    this->dio0  = dio0;
 
     pinMode(this->cs, OUTPUT);
     digitalWrite(this->cs, HIGH);
@@ -182,7 +181,7 @@ void SX1278::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t m
 void SX1278::startTransmission(uint8_t *data, uint8_t length, uint8_t addr) {
     setMode(STANDBY);
 
-    //set IO mapping for irq to be end of transmission
+    //set IO mapping for dio0 to be end of transmission
     setRegister(REG_DIO_MAPPING_1, DIO0_LORA_TX_DONE, 6, 7);
 
     //clear interrupt flags
@@ -213,6 +212,6 @@ uint8_t SX1278::finishTransmission() {
 uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t addr, uint8_t timeout) {
     setMode(STANDBY);
     startTransmission(data, length, addr);
-    while(!digitalRead(this->irq));
+    while(!digitalRead(this->dio0));
     return finishTransmission();
 }

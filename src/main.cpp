@@ -9,6 +9,10 @@
  * 
  */
 
+//TODO read input voltage
+//TODO send voltage with data
+//TODO some sort of packet
+//TODO sleep with timer only
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -30,7 +34,6 @@
 #  define LORA_RST  D9
 #  define LORA_CS   D10
 #  define LORA_IRQ  D7
-#  define LORA_GPIO D6
 #  define LED_PIN   D8
 #  define BMP_CS    D3
 
@@ -38,7 +41,6 @@
 #  define LORA_RST  PA5
 #  define LORA_CS   PA4
 #  define LORA_IRQ  PA6 //DIO0
-#  define LORA_GPIO 0
 #  define LED_PIN   PB0
 #  define BMP_CS    PA7
 
@@ -46,7 +48,7 @@
 
 
 SPIClass spi = SPIClass();
-SX1278 lora = SX1278(LORA_CS, LORA_RST, LORA_IRQ, LORA_GPIO);
+SX1278 lora = SX1278(LORA_CS, LORA_RST, LORA_IRQ);
 Serial serial = Serial();
 BMX280 bmp = BMX280(BMP_CS);
 
@@ -61,37 +63,6 @@ void blink(uint8_t cnt) {
 }
 
 
-//int main() {
-//    #if defined (__AVR_ATtiny1624__)
-//    //Run at 10MHz
-//    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PEN_bm);    //enable prescaler
-//    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc);  //set oscilator to 20MHz
-//    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc | CLKCTRL_PEN_bm);   //set prescaler to 2
-//    #endif
-//
-//    digitalWrite(LORA_CS, HIGH);
-//
-//    pinMode(LORA_IRQ, INPUT);
-//    pinMode(LORA_GPIO, INPUT);
-//
-//
-//    serial.init(9600);
-//    spi.init();
-//    serial.println("SPI init");
-//
-//    serial.print("LoRa init: ");
-//    serial.println(lora.init(&spi, 18U, 8U, 10));
-//    serial.println("Chip found");
-//
-//    serial.print("BMP init: ");
-//    serial.println(bmp.init(&spi));
-//    serial.print("BMP ID: 0x");
-//    serial.printlnHex(bmp.getId());
-//
-//    return 0;
-//}
-
-
 int main() {
     #if defined (__AVR_ATtiny1624__)
     //Run at 10MHz
@@ -103,7 +74,6 @@ int main() {
     digitalWrite(LORA_CS, HIGH);
 
     pinMode(LORA_IRQ, INPUT);
-    pinMode(LORA_GPIO, INPUT);
 
 
     serial.init(9600);
