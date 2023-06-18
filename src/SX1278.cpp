@@ -23,80 +23,71 @@ SX1278::~SX1278() {
 //crc: enabled and set to 4/7
 //gain: automatic
 //frequency hopping: off
-uint8_t SX1278::init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power) {
+uint8_t SX1278::init(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len) {
     this->spi = spi;
     this->spi->init();
 
     pinMode(this->cs, OUTPUT);
     digitalWrite(this->cs, HIGH);
 
-    if (getVersion() != CHIP_VERSION)
+    if (getVersion() != SX1278_CHIP_VERSION)
         return 0;
 
     float freq   = 434.0F;
     float bw     = 125.0F;
-    uint8_t sf   = 9U;
+    uint8_t sf   = 7U;
     uint8_t cr   = 7U;
 
     //set mode to standby
-    setMode(STANDBY);
+    setMode(SX1278_STANDBY);
 
     //turn off frequency hopping
     writeRegister(REG_HOP_PERIOD, HOP_PERIOD_OFF);
 
     //set lora mode
-    setModemMode(LORA);
+    setModemMode(SX1278_LORA);
 
     //set LoRa sync word
     writeRegister(REG_SYNC_WORD, sync_word);
 
-    setCurrentLimit(60);
-
+    //set preamble length
     writeRegister(REG_PREAMBLE_MSB, (uint8_t)((preamble_len >> 8) & 0xFF));
     writeRegister(REG_PREAMBLE_LSB, (uint8_t)(preamble_len & 0xFF));
 
     //125khz bandwidth
     //is already default
-    setRegister(REG_MODEM_CONFIG_1, 0b01110000, 4, 7);
+    setRegister(REG_MODEM_CONFIG_1, LORA_BANDWIDTH_125kHz, 4, 7);
 
-    //434 frequency
-    //default already is 434
+    //disable low data rate ptimalization, since symbol length is less than 16
+    setRegister(REG_MODEM_CONFIG_3, LORA_LOW_DATA_RATE_OPT_OFF, 3, 3);
+    
+    //set frequency
     uint32_t FRF = (freq * (uint32_t(1) << 19)) / 32.0;
     setRegister(REG_FRF_MSB, (FRF & 0xFF0000) >> 16);
     setRegister(REG_FRF_MID, (FRF & 0x00FF00) >> 8);
     setRegister(REG_FRF_LSB, FRF & 0x0000FF);
 
     //explicit header
-    setRegister(REG_MODEM_CONFIG_1, HEADER_EXPL_MODE, 0, 0);
+    setRegister(REG_MODEM_CONFIG_1, LORA_EXPLICIT_HEADER, 0, 0);
 
-    //set spreading factor;
-    //is also default already
-    setRegister(REG_MODEM_CONFIG_2, SF_9 | TX_MODE_SINGLE, 4, 7);
+    //set spreading factor 7
+    //is already set by default
+    setRegister(REG_MODEM_CONFIG_2, LORA_SPREADING_FACTOR_7, 4, 7);
     setRegister(REG_DETECT_OPTIMIZE, DETECT_OPTIMIZE_SF_7_12, 0, 2);
     setRegister(REG_DETECTION_THRESHOLD, DETECTION_THRESHOLD_SF_7_12);
 
-    //set error coding rate to 4/7
-    setRegister(REG_MODEM_CONFIG_1, CR_4_7, 1, 3);
+    //set error coding rate to 4/5
+    setRegister(REG_MODEM_CONFIG_1, LORA_CODING_RATE_4_5, 1, 3);
 
-    //state = setOutputPower(power);
-    setRegister(REG_PA_CONFIG, PA_SELECT_BOOST, 7, 7);
-    setRegister(REG_PA_CONFIG, MAX_POWER | (power - 2), 0, 6);
-    setRegister(REG_PA_DAC, PA_BOOST_OFF, 0, 2);
+    //module I have does not have RFO pin connected
+    //so let's just enable PA_BOOST and set lowest possible power
+    writeRegister(REG_PA_CONFIG, SX1278_PA_SELECT_BOOST);
 
     //enable automatic gain control
-    setRegister(REG_MODEM_CONFIG_3, AGC_AUTO_ON, 2, 2);
+    setRegister(REG_MODEM_CONFIG_3, LORA_AGC_AUTO_ON, 2, 2);
 
     //enable crc
-    setRegister(REG_MODEM_CONFIG_2, RX_CRC_MODE_ON, 2, 2);
-
-    //configure low data rate
-    float symbolLength = (float)(uint32_t(1) << sf) / (float)bw;
-    if(symbolLength >= 16.0) {
-        setRegister(REG_MODEM_CONFIG_3, LOW_DATA_RATE_OPT_ON, 3, 3);
-    }
-    else {
-        setRegister(REG_MODEM_CONFIG_3, LOW_DATA_RATE_OPT_OFF, 3, 3);
-    }
+    setRegister(REG_MODEM_CONFIG_2, LORA_RX_PAYLOAD_CRC_ON, 2, 2);
 
     return 1;
 }
@@ -121,15 +112,15 @@ void SX1278::setMode(uint8_t mode) {
 }
 
 void SX1278::setModemMode(uint8_t modem) {
-    setMode(SLEEP);
+    setMode(SX1278_SLEEP);
 
     setRegister(REG_OP_MODE, modem, 7, 7);
 
-    setMode(STANDBY);
+    setMode(SX1278_STANDBY);
 }
 
-void SX1278::setCurrentLimit(uint8_t current_limit) {
-    setMode(STANDBY);
+/*void SX1278::setCurrentLimit(uint8_t current_limit) {
+    setMode(SX1278_STANDBY);
 
     uint8_t raw;
     uint8_t reg = readRegister(REG_OCP);
@@ -149,6 +140,7 @@ void SX1278::setCurrentLimit(uint8_t current_limit) {
 
     writeRegister(REG_OCP, reg);
 }
+*/
 
 
 uint8_t SX1278::readRegister(uint8_t addr) {
@@ -178,8 +170,8 @@ void SX1278::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t m
 }
 
 
-void SX1278::startTransmission(uint8_t *data, uint8_t length, uint8_t addr) {
-    setMode(STANDBY);
+void SX1278::startTransmission(uint8_t *data, uint8_t length) {
+    setMode(SX1278_STANDBY);
 
     //set IO mapping for dio0 to be end of transmission
     setRegister(REG_DIO_MAPPING_1, DIO0_LORA_TX_DONE, 6, 7);
@@ -200,18 +192,18 @@ void SX1278::startTransmission(uint8_t *data, uint8_t length, uint8_t addr) {
     digitalWrite(this->cs, HIGH);
 
     //start transmission
-    setMode(TX);
+    setMode(SX1278_TX);
 }
 uint8_t SX1278::finishTransmission() {
     uint8_t reg = readRegister(REG_IRQ_FLAGS);
     writeRegister(REG_IRQ_FLAGS, 0xFF);
-    setMode(STANDBY);
+    setMode(SX1278_STANDBY);
     return reg;
 }
 
-uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t addr, uint8_t timeout) {
-    setMode(STANDBY);
-    startTransmission(data, length, addr);
+uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t timeout) {
+    setMode(SX1278_STANDBY);
+    startTransmission(data, length);
     while(!digitalRead(this->dio0));
     return finishTransmission();
 }

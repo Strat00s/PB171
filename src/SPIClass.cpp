@@ -45,17 +45,12 @@ void SPIClass::init() {
     if (initialized)
         return;
 
-    //Set MOSI and SCK and SS as output
-    //DDRB = (1 << PB3) | (1 << PB5) | (1 << PB2);
-
     PORTA.DIRSET = (1 << MOSI) | (1 << SCK) | (1 << SS);
 
     //Enable SPI, set it to master mode, set clock rate to 2MHz (fck/8), msb first, mode 0
     SPI0.CTRLA |= SPI_MASTER_bm | SPI_CLK2X_bm;
     SPI0.CTRLB |= SPI_SSD_bm;
     SPI0.CTRLA |= SPI_ENABLE_bm;
-    //SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR0);
-    //SPSR = 1 << SPI2X;
 
     initialized++;
 }

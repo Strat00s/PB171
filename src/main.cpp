@@ -9,9 +9,7 @@
  * 
  */
 
-//TODO read input voltage
-//TODO send voltage with data
-//TODO some sort of packet
+
 //TODO sleep with timer only
 
 #include <avr/io.h>
@@ -53,14 +51,36 @@ Serial serial = Serial();
 BMX280 bmp = BMX280(BMP_CS);
 
 
-void blink(uint8_t cnt) {
-    for (int i = 0; i < cnt; i++){
-        digitalWrite(LED_PIN, HIGH);
-        _delay_ms(50);
-        digitalWrite(LED_PIN, LOW);
-        _delay_ms(50);
-    }
+//inspired by http://www.technoblogy.com/show?3K82
+//use ADC and internal refference to calculate VDD
+uint16_t getVDD() {
+
+    //adc ref = vdd
+    //adc muxpos =  1.024v - AC0
+
+    VREF.CTRLA   = VREF_AC0REFSEL_1V024_gc;         //set AC0 reference to 1.024V
+    AC0.DACREF   = 0xFF;                            //set AC.DACREF to to 1.024V on output
+    AC0.CTRLA    = AC_LPMODE_bm | AC_ENABLE_bm;     //enable AC in low power mode
+    
+    ADC0.CTRLA   = ADC_ENABLE_bm;                                       //enable ADC
+    ADC0.CTRLC   = ADC_REFSEL_VDD_gc | (10 << ADC_TIMEBASE_gp);        //set ADC reference to VDD and number of CLK_PER per 1us (10MHz * 0.000001 = 10)
+    ADC0.MUXPOS  = ADC_MUXPOS_DACREF0_gc;                               //set ADC input as AC DACREF MUXPOS = ACV
+    ADC0.CTRLB   = ADC_PRESC_DIV10_gc;                                  //1MHz ADC clock
+    ADC0.COMMAND = ADC_MODE_SINGLE_12BIT_gc | ADC_START_IMMEDIATE_gc;    //start single 8bit conversion
+
+    //wait for conversion to end
+    while (ADC0.STATUS & ADC_ADCBUSY_bm);
+
+    //AC0.DACREF = VREF * (ADC0.RESULT / 2^12)
+    //VREF = (AC0.DACREF * 2^12) / ADC0.RESULT
+    //VREF = (1.024 * 2^12) / ADC0.RESULT
+    //VREF = 4194.304 / ADC0.RESULT
+    //VREF/100 = 419430.4 / ADC0.RESULT
+
+    return 419430 / ADC0.RESULT;
 }
+
+
 
 
 int main() {
@@ -81,42 +101,50 @@ int main() {
     serial.println("SPI init");
 
     serial.print("LoRa init: ");
-    serial.println(lora.init(&spi, 18U, 8U, 10));
-    serial.println("Chip found");
+    uint8_t init = lora.init(&spi, 434.0F, 18U, 8U);
+    serial.println(init);
+    if (init != 1) {
+        serial.println(("SX1278 not found"));
+        while (true);
+    }
+    lora.setMode(SX1278_SLEEP);
 
     serial.print("BMP init: ");
-    serial.println(bmp.init(&spi));
+    init = bmp.init(&spi);
+    serial.println(init);
+    if (init != 0) {
+        serial.print(("BMP280 not found: "));
+        serial.println(init);
+        while (true);
+    }
+    bmp.setMode(BMX280_SLEEP);
     serial.print("BMP ID: 0x");
     serial.printlnHex(bmp.getId());
-    //bmp.setTemperatureOversampling(BMX280_TEMP_OVERx1);
-
-
-    pinMode(LED_PIN, OUTPUT);
-    blink(10);
 
     while(true) {
-        blink(5);
-        _delay_ms(2000);
-        //lora.setMode(STANDBY);
+        uint8_t data[8] = {0};
+        uint16_t vdd = getVDD();
+        data[0] = (uint8_t)(vdd);
+        data[1] = (uint8_t)(vdd >> 8);
+        bmp.getAll((int16_t*)(data + 2), (uint32_t*)(data + 4));
 
-        int16_t temperature;
-        uint32_t pressure;
-        bmp.getAll(&temperature, &pressure);
+        int16_t temp = (int16_t)data[3] << 8 | (int16_t)data[2];
+        uint32_t press = (uint32_t)data[7] << 24 | (uint32_t)data[6] << 16 | (uint32_t)data[5] << 8 | data[4];
 
         serial.println("Get all: ");
         serial.print("  Temperature: ");
-        serial.println(temperature);
+        serial.println(temp);
         serial.print("  Pressure: ");
-        serial.println(pressure);
+        serial.println(press);
+        serial.print("  Voltage:");
+        serial.println(vdd);
 
+        lora.setMode(SX1278_STANDBY);
+        lora.transmit((uint8_t*)data, 8, 0);
+        lora.setMode(SX1278_SLEEP);
+        serial.println("data probably sent");
 
-        char message[32];
-        sprintf(message, "T%dP%ld", temperature, pressure);
-        
-        lora.setMode(STANDBY);
-        lora.transmit((uint8_t*)message, 32, 0, 0);
-        serial.println("Message sent");
-        lora.setMode(SLEEP);
+        _delay_ms(5000);
     }
 
     return 0;

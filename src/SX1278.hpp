@@ -2,6 +2,77 @@
 #include "SPIClass.hpp"
 #include "digitalIO.hpp"
 
+/*----(register fields)----*/
+//SX1278 chip version
+#define SX1278_CHIP_VERSION                            0x12
+
+//config 1
+#define LORA_BANDWIDTH_7_8kHz    0b00000000
+#define LORA_BANDWIDTH_10_4kHz   0b00010000
+#define LORA_BANDWIDTH_15_6kHz   0b00100000
+#define LORA_BANDWIDTH_20_8kHz   0b00110000
+#define LORA_BANDWIDTH_31_25kHz  0b01000000
+#define LORA_BANDWIDTH_41_7kHz   0b01010000
+#define LORA_BANDWIDTH_62_5kHz   0b01100000
+#define LORA_BANDWIDTH_125kHz    0b01110000
+#define LORA_BANDWIDTH_250kHz    0b10000000
+#define LORA_BANDWIDTH_500kHz    0b10010000
+
+#define LORA_CODING_RATE_4_5              0b00000010
+#define LORA_CODING_RATE_4_6              0b00000100
+#define LORA_CODING_RATE_4_7              0b00000110
+#define LORA_CODING_RATE_4_8              0b00001000
+
+#define LORA_IMPLICIT_HEADER     0b00000001
+#define LORA_EXPLICIT_HEADER     0b00000000
+
+//config 2
+#define LORA_SPREADING_FACTOR_6         0b01100000
+#define LORA_SPREADING_FACTOR_7         0b01110000
+#define LORA_SPREADING_FACTOR_8         0b10000000
+#define LORA_SPREADING_FACTOR_9         0b10010000
+#define LORA_SPREADING_FACTOR_10        0b10100000
+#define LORA_SPREADING_FACTOR_11        0b10110000
+#define LORA_SPREADING_FACTOR_12        0b11000000
+#define LORA_TX_CONTINUOUS_MODE_ON      0b00001000
+#define LORA_TX_CONTINUOUS_MODE_OFFT    0b00000000
+//#define LORA_SYMB_TIMEOUT               0b00000000
+#define LORA_RX_PAYLOAD_CRC_ON          0b00000100
+#define LORA_RX_PAYLOAD_CRC_OFF         0b00000000
+
+//config 3
+#define LORA_LOW_DATA_RATE_OPT_OFF   0b00000000
+#define LORA_LOW_DATA_RATE_OPT_ON    0b00001000
+#define LORA_AGC_AUTO_OFF            0b00000000
+#define LORA_AGC_AUTO_ON             0b00000100
+
+//modes
+#define SX1278_SLEEP                0b00000000
+#define SX1278_STANDBY              0b00000001
+#define SX1278_TX                   0b00000011
+#define SX1278_LORA                 0b10000000
+
+//power config
+#define SX1278_PA_SELECT_BOOST   0b10000000
+#define SX1278_PA_SELECT_RFO     0b00000000
+//overcurrent protection
+#define OCP_OFF                                 0b00000000
+#define OCP_ON                                  0b00100000
+#define OCP_TRIM                                0b00001011
+
+//hopping config
+#define HOP_PERIOD_OFF                          0b00000000
+
+//Detection optimize
+#define DETECT_OPTIMIZE_SF_7_12                 0b00000011
+//Detection treshold
+#define DETECTION_THRESHOLD_SF_7_12             0b00001010
+
+//pinmaps
+#define DIO0_LORA_TX_DONE                       0b01000000
+
+#define FIFO_TX_BASE_ADDR_MAX                   0b00000000
+
 
 //SX1278 registers
 #define REG_FIFO                                0x00
@@ -28,64 +99,9 @@
 #define REG_VERSION                             0x42
 #define REG_PA_DAC                              0x4D
 
-//SX1278 chip version
-#define CHIP_VERSION                            0x12
-
-//modem settings/modes
-#define SLEEP                                   0b00000000
-#define STANDBY                                 0b00000001
-#define TX                                      0b00000011
-#define LORA                                    0b10000000
-
-//power config
-#define PA_SELECT_BOOST                         0b10000000
-#define MAX_POWER                               0b01110000
-#define PA_BOOST_OFF                            0b00000100
-//overcurrent protection
-#define OCP_OFF                                 0b00000000
-#define OCP_ON                                  0b00100000
-#define OCP_TRIM                                0b00001011
 
 //hopping config
 #define HOP_PERIOD_OFF                          0b00000000
-
-//config 1
-#define BW_7_80_KHZ                             0b00000000
-#define BW_10_40_KHZ                            0b00010000
-#define BW_15_60_KHZ                            0b00100000
-#define BW_20_80_KHZ                            0b00110000
-#define BW_31_25_KHZ                            0b01000000
-#define BW_41_70_KHZ                            0b01010000
-#define BW_62_50_KHZ                            0b01100000
-#define BW_125_00_KHZ                           0b01110000
-#define BW_250_00_KHZ                           0b10000000
-#define BW_500_00_KHZ                           0b10010000
-#define CR_4_5                                  0b00000010
-#define CR_4_6                                  0b00000100
-#define CR_4_7                                  0b00000110
-#define CR_4_8                                  0b00001000
-#define HEADER_EXPL_MODE                        0b00000000
-#define HEADER_IMPL_MODE                        0b00000001
-
-//config 2
-#define SF_6                                    0b01100000
-#define SF_7                                    0b01110000
-#define SF_8                                    0b10000000
-#define SF_9                                    0b10010000
-#define SF_10                                   0b10100000
-#define SF_11                                   0b10110000
-#define SF_12                                   0b11000000
-#define TX_MODE_SINGLE                          0b00000000
-#define TX_MODE_CONT                            0b00001000
-#define RX_TIMEOUT_MSB                          0b00000000
-#define RX_CRC_MODE_OFF                         0b00000000
-#define RX_CRC_MODE_ON                          0b00000100
-
-//config 3
-#define LOW_DATA_RATE_OPT_OFF                   0b00000000
-#define LOW_DATA_RATE_OPT_ON                    0b00001000
-#define AGC_AUTO_OFF                            0b00000000
-#define AGC_AUTO_ON                             0b00000100
 
 //Detection optimize
 #define DETECT_OPTIMIZE_SF_7_12                 0b00000011
@@ -110,7 +126,7 @@ private:
     uint8_t cs;
     uint8_t rst;
 
-    void startTransmission(uint8_t *data, uint8_t length, uint8_t addr);
+    void startTransmission(uint8_t *data, uint8_t length);
     uint8_t finishTransmission();
 
 public:
@@ -129,11 +145,11 @@ public:
 
 
 
-    uint8_t init(SPIClass *spi, uint8_t sync_word, uint16_t preamble_len, int8_t power);
+    uint8_t init(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len);
     uint8_t readRegister(uint8_t addr);
     void writeRegister(uint8_t addr, uint8_t data);
     void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);
 
-    uint8_t transmit(uint8_t *data, uint8_t length, uint8_t addr, uint8_t timeout);
+    uint8_t transmit(uint8_t *data, uint8_t length, uint8_t timeout);
 };
 

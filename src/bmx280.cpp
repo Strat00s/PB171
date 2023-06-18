@@ -243,8 +243,8 @@ void BMX280::getAll(int16_t *temperature, uint32_t *pressure, uint16_t *humidity
     uint8_t raw_data[8];
     getAllRaw(raw_data);
 
-    *pressure = calculatePressure(raw_data);
     *temperature = calculateTemperature(raw_data + 3);
+    *pressure = calculatePressure(raw_data);
     if (this->chip_id == BME280_ID || humidity != nullptr)
         *humidity = calculateHumidity(raw_data + 6);
 }
