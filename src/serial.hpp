@@ -18,7 +18,8 @@ public:
     Serial() {};
     ~Serial() {};
 
-    void init(unsigned long baud_rate);
+    void begin(unsigned long baud_rate);
+    void end();
 
     void print(const char *str);
     void println(const char *str);

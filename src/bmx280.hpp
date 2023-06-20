@@ -202,15 +202,15 @@ public:
 
     BMX280(uint8_t cs);
     BMX280(SPIClass *spi, uint8_t cs);
-    ~BMX280(){};
+    ~BMX280();
 
     uint8_t readRegister(uint8_t addr);
     void readRegisterBurst(uint8_t addr, uint8_t *data, uint8_t length);
     void writeRegister(uint8_t addr, uint8_t data);
     void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);
 
-    uint8_t init();
-    uint8_t init(SPIClass *spi);
+    uint8_t begin();
+    uint8_t begin(SPIClass *spi);
 
     void reset();
 

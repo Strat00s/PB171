@@ -25,6 +25,8 @@ BMX280::BMX280(SPIClass *spi, uint8_t cs) : BMX280(cs) {
     this->spi = spi;
 }
 
+BMX280::~BMX280() {};
+
 
 uint8_t BMX280::readRegister(uint8_t addr) {
     digitalWrite(this->cs, LOW);
@@ -55,14 +57,11 @@ void BMX280::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t m
 }
 
 
-uint8_t BMX280::init() {
+uint8_t BMX280::begin() {
     if (this->spi == nullptr)
         return 2;
 
-    //pinMode(this->cs, OUTPUT);
-    //digitalWrite(this->cs, LOW);    //set SPI mode
-    //digitalWrite(this->cs, HIGH);
-    this->spi->init();
+    this->spi->begin();
     
     switch (getId()) {
         case BMP280_SAMPLE_ID:
@@ -101,9 +100,9 @@ uint8_t BMX280::init() {
     setMode(BMX280_SLEEP);
     return 0;
 }
-uint8_t BMX280::init(SPIClass *spi) {
+uint8_t BMX280::begin(SPIClass *spi) {
     this->spi = spi;
-    return init();
+    return begin();
 }
 
 

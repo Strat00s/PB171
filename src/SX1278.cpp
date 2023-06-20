@@ -23,15 +23,18 @@ SX1278::~SX1278() {
 //crc: enabled and set to 4/7
 //gain: automatic
 //frequency hopping: off
-uint8_t SX1278::init(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len) {
+uint8_t SX1278::begin(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len) {
     this->spi = spi;
-    this->spi->init();
+    if (this->spi == nullptr)
+        return 2;
 
-    pinMode(this->cs, OUTPUT);
-    digitalWrite(this->cs, HIGH);
+    this->spi->begin();
+
+    //pinMode(this->cs, OUTPUT);
+    //digitalWrite(this->cs, HIGH);
 
     if (getVersion() != SX1278_CHIP_VERSION)
-        return 0;
+        return 1;
 
     float freq   = 434.0F;
     float bw     = 125.0F;
@@ -89,7 +92,11 @@ uint8_t SX1278::init(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t
     //enable crc
     setRegister(REG_MODEM_CONFIG_2, LORA_RX_PAYLOAD_CRC_ON, 2, 2);
 
-    return 1;
+    //disable all IO pins
+    writeRegister(REG_DIO_MAPPING_1, 0xFF);
+    setRegister(REG_DIO_MAPPING_2, 0b11110000);
+
+    return 0;
 }
 
 
@@ -182,9 +189,9 @@ void SX1278::startTransmission(uint8_t *data, uint8_t length) {
     //set packet length
     setRegister(REG_PAYLOAD_LENGTH, length);
 
-    //set FIFO pointers
-    setRegister(REG_FIFO_TX_BASE_ADDR, FIFO_TX_BASE_ADDR_MAX);
-    setRegister(REG_FIFO_ADDR_PTR, FIFO_TX_BASE_ADDR_MAX);
+    //set FIFO pointers (all 256 bytes used for TX)
+    setRegister(REG_FIFO_TX_BASE_ADDR, 0);
+    setRegister(REG_FIFO_ADDR_PTR, 0);
 
     //write data to FIFO
     digitalWrite(this->cs, LOW);
@@ -195,6 +202,7 @@ void SX1278::startTransmission(uint8_t *data, uint8_t length) {
     setMode(SX1278_TX);
 }
 uint8_t SX1278::finishTransmission() {
+    //read and clear interrupts
     uint8_t reg = readRegister(REG_IRQ_FLAGS);
     writeRegister(REG_IRQ_FLAGS, 0xFF);
     setMode(SX1278_STANDBY);
@@ -203,7 +211,33 @@ uint8_t SX1278::finishTransmission() {
 
 uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t timeout) {
     setMode(SX1278_STANDBY);
-    startTransmission(data, length);
+
+    //set IO mapping for dio0 to be end of transmission
+    setRegister(REG_DIO_MAPPING_1, DIO0_LORA_TX_DONE, 6, 7);
+
+    //clear interrupt flags
+    writeRegister(REG_IRQ_FLAGS, 0xFF);
+
+    //set packet length
+    setRegister(REG_PAYLOAD_LENGTH, length);
+
+    //set FIFO pointers (all 256 bytes used for TX)
+    setRegister(REG_FIFO_TX_BASE_ADDR, 0);
+    setRegister(REG_FIFO_ADDR_PTR, 0);
+
+    //write data to FIFO
+    digitalWrite(this->cs, LOW);
+    this->spi->writeRegisterBurst(REG_FIFO, data, length, SX1278_WRITE);
+    digitalWrite(this->cs, HIGH);
+
+    //start transmission
+    setMode(SX1278_TX);
+
     while(!digitalRead(this->dio0));
-    return finishTransmission();
+    //while(!(readRegister(REG_IRQ_FLAGS) & 0b00001000));
+    setMode(SX1278_STANDBY);
+    //read and clear interrupts
+    uint8_t reg = readRegister(REG_IRQ_FLAGS);
+    writeRegister(REG_IRQ_FLAGS, 0xFF);
+    return reg;
 }

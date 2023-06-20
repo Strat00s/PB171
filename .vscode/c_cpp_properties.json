@@ -23,7 +23,7 @@
             "defines": [
                 //"__AVR_ATmega328P__"
                 "__AVR_ATtiny1624__",
-                "F_CPU=10000000UL"
+                "F_CPU=5000000UL"
             ]
         }
     ],

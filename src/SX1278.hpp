@@ -96,6 +96,7 @@
 #define REG_DETECTION_THRESHOLD                 0x37
 #define REG_SYNC_WORD                           0x39
 #define REG_DIO_MAPPING_1                       0x40
+#define REG_DIO_MAPPING_2                       0x41
 #define REG_VERSION                             0x42
 #define REG_PA_DAC                              0x4D
 
@@ -133,19 +134,14 @@ public:
     SX1278(uint8_t cs, uint8_t rst, uint8_t dio0);
     ~SX1278();
 
+    uint8_t begin(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len);
+
     void reset();
-
     uint8_t getVersion();
-
     void setMode(uint8_t mode);
-
     void setModemMode(uint8_t modem);
 
-    void setCurrentLimit(uint8_t current);
 
-
-
-    uint8_t init(SPIClass *spi, float frequency, uint8_t sync_word, uint16_t preamble_len);
     uint8_t readRegister(uint8_t addr);
     void writeRegister(uint8_t addr, uint8_t data);
     void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);

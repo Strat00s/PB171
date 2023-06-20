@@ -17,7 +17,7 @@
 #include "pinmap.hpp"
 
 #if defined (__AVR_ATmega328P__)
-void Serial::init(unsigned long baud_rate) {
+void Serial::begin(unsigned long baud_rate) {
     //set baud rate
     unsigned int ubrr = F_CPU / (16 * baud_rate) - 1;
     UBRR0H = (uint8_t)(ubrr >> 8);
@@ -30,6 +30,11 @@ void Serial::init(unsigned long baud_rate) {
     UCSR0C = (3 << UCSZ00);
 }
 
+void Serial::end() {
+    UCSR0B = 0b00000000;    //disable uart
+}
+
+
 void Serial::print(const char *str) {
     while (*str) {
         while (!(UCSR0A & (1 << UDRE0)));
@@ -39,7 +44,7 @@ void Serial::print(const char *str) {
 
 #elif defined (__AVR_ATtiny1624__)
 
-void Serial::init(unsigned long baud_rate) {
+void Serial::begin(unsigned long baud_rate) {
     pinMode(TX0, OUTPUT);    //TX ouptut
     pinMode(RX0, INPUT);     //RX input
     
@@ -53,6 +58,11 @@ void Serial::init(unsigned long baud_rate) {
     USART0.CTRLC = USART_CHSIZE_8BIT_gc | USART_PMODE_DISABLED_gc | USART_SBMODE_1BIT_gc;
 
 }
+
+void Serial::end() {
+    USART0.CTRLB = 0b00000000;  //disable uart
+}
+
 
 void Serial::print(const char *str) {
     while (*str) {

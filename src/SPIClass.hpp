@@ -4,8 +4,6 @@
 
 class SPIClass {
 private:
-    uint8_t initialized;
-
     void setReadWrite(uint8_t addr, uint8_t rw);
     uint8_t transfer(uint8_t data);
 
@@ -13,7 +11,8 @@ public:
     SPIClass();
     ~SPIClass();
 
-    void init();
+    void begin();
+    void end();
 
     uint8_t readRegister(uint8_t addr, uint8_t rw);
     void readRegisterBurst(uint8_t addr, uint8_t* data, uint8_t length, uint8_t rw);
