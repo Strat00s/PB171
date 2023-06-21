@@ -102,11 +102,50 @@ void sleep(uint16_t time) {
     uint8_t portb_dir   = PORTB.DIR;
     uint8_t portb_state = PORTB.OUT;
 
+    //TODO properly test all pin combinations
+
     //set all pins as outputs and pull them low (lowest power consumption)
-    PORTA.DIR = 0xFF;
-    PORTA.OUT = 0;
-    PORTB.DIR = 0xFF;
-    PORTB.OUT = 0;
+    //PORTA.DIR = 0xFF;
+    //PORTA.OUT = 0;
+    //PORTB.DIR = 0xFF;
+    //PORTB.OUT = 0;
+
+    pinMode(PA0, OUTPUT);
+    digitalWrite(PA0, LOW);
+    pinMode(PB0, OUTPUT);
+    digitalWrite(PB0, LOW);
+    pinMode(PB1, OUTPUT);
+    digitalWrite(PB1, LOW);
+    pinMode(PB2, OUTPUT);
+    digitalWrite(PB2, LOW);
+    pinMode(PB3, OUTPUT);
+    digitalWrite(PB3, LOW);
+
+    //good for lora
+    //LORA_CS cannot be input
+    pinMode(LORA_CS, OUTPUT);
+    digitalWrite(LORA_CS, HIGH);
+    //IRQ must be pulled LOW
+    pinMode(LORA_IRQ, OUTPUT);
+    digitalWrite(LORA_IRQ, LOW);
+
+    //pinMode(LORA_RST, OUTPUT);
+    //digitalWrite(LORA_RST, LOW);
+
+    //good for lora and bmp
+    //SCK and MOSI are pulled high on BMP sensor
+    //MISO is pulled to ground
+    //CS for BMP is pulled high
+    pinMode(SCK, OUTPUT);
+    digitalWrite(SCK, HIGH);
+    pinMode(MOSI, OUTPUT);
+    digitalWrite(MOSI, HIGH);
+    pinMode(MISO, OUTPUT);
+    digitalWrite(MISO, LOW);
+
+    //good for bmp
+    pinMode(BMP_CS, OUTPUT);
+    digitalWrite(BMP_CS, HIGH);
 
     //disable ADC. Pretty much everything is already disabled (BOD, WDT and so on)
     ADC0.CTRLA = 0;
@@ -117,7 +156,7 @@ void sleep(uint16_t time) {
     RTC.CLKSEL = RTC_CLKSEL_INT1K_gc;   //set 1kHz clock
     while (RTC.PITSTATUS);
     RTC.PITINTCTRL = 1;                 //enable PIT interrupt
-    RTC.PITCTRLA = RTC_PERIOD_CYC16384_gc | RTC_PITEN_bm;
+    RTC.PITCTRLA = RTC_PERIOD_CYC8192_gc | RTC_PITEN_bm;
 
     //enable interrupts, enable sleep, switch clock source, go to sleep
     SREG |= 0b10000000;
@@ -175,50 +214,42 @@ int main() {
     //5mhz
     _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PEN_bm);    //enable prescaler
     _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc);  //set oscilator to 20MHz
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_4X_gc | CLKCTRL_PEN_bm);   //set prescaler to 4
+    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc | CLKCTRL_PEN_bm);   //set prescaler to 4
 
     RTC.PITCTRLA = RTC_PITEN_bm;
 
-    //reset all pins
-    PORTA.DIR = 0;
-    PORTB.DIR = 0;
-
-    //pinMode(LED_PIN, OUTPUT);
-
-    //Serial serial = Serial();
-    //DELAY(2000);
-
     spi.begin();
     lora.begin(&spi, 434.0F, 18U, 8U);
-    //lora.setMode(SX1278_SLEEP);
-
+    lora.setMode(SX1278_SLEEP);
     bmp.begin(&spi);
-    //bmp.setMode(BMX280_SLEEP);
-
 
     while (true) {
-        spi.begin();
+        //start spi
+        //spi.begin();
 
+        //calculate everything
         uint8_t data[8] = {0};
         uint16_t vdd = getVDD();
         data[0] = (uint8_t)(vdd);
         data[1] = (uint8_t)(vdd >> 8);
         bmp.getAll((int16_t*)(data + 2), (uint32_t*)(data + 4));
-
         int16_t temp = (int16_t)data[3] << 8 | (int16_t)data[2];
         uint32_t press = (uint32_t)data[7] << 24 | (uint32_t)data[6] << 16 | (uint32_t)data[5] << 8 | data[4];
 
-        lora.setMode(SX1278_STANDBY);
-        lora.transmit((uint8_t*)data, 8, 0);
+        //transmit it
+        lora.transmit((uint8_t*)data, 8);
 
-        lora.setMode(SX1278_SLEEP);
-        bmp.setMode(BMX280_SLEEP);
-        spi.end();
-        sleep(4);
+        //DELAY(4000);
+
+        //go to sleep
+        //lora.setMode(SX1278_SLEEP);
+        //spi.end();
+
+        //sleep(4);
     }
     
-}*/
-
+}
+*/
 
 int main() {
     #if defined (__AVR_ATtiny1624__)
@@ -259,6 +290,10 @@ int main() {
     serial.printlnHex(bmp.getId());
 
     while(true) {
+        serial.begin(9600);
+        spi.begin();
+
+        
         uint8_t data[8] = {0};
         uint16_t vdd = getVDD();
         data[0] = (uint8_t)(vdd);
@@ -276,14 +311,17 @@ int main() {
         serial.print("  Voltage:");
         serial.println(vdd);
 
-        lora.setMode(SX1278_STANDBY);
-        lora.transmit((uint8_t*)data, 8, 0);
+        
+        lora.transmit((uint8_t*)data, 8);
         lora.setMode(SX1278_SLEEP);
+
         serial.println("data probably sent");
 
-        _delay_ms(1000);
+        serial.end();
+        spi.end();
+
+        sleep(4);
     }
 
     return 0;
 }
-

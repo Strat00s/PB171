@@ -127,9 +127,6 @@ private:
     uint8_t cs;
     uint8_t rst;
 
-    void startTransmission(uint8_t *data, uint8_t length);
-    uint8_t finishTransmission();
-
 public:
     SX1278(uint8_t cs, uint8_t rst, uint8_t dio0);
     ~SX1278();
@@ -146,6 +143,6 @@ public:
     void writeRegister(uint8_t addr, uint8_t data);
     void setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb = 0, uint8_t mask_msb = 7);
 
-    uint8_t transmit(uint8_t *data, uint8_t length, uint8_t timeout);
+    uint8_t transmit(uint8_t *data, uint8_t length);
 };
 

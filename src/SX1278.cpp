@@ -126,29 +126,6 @@ void SX1278::setModemMode(uint8_t modem) {
     setMode(SX1278_STANDBY);
 }
 
-/*void SX1278::setCurrentLimit(uint8_t current_limit) {
-    setMode(SX1278_STANDBY);
-
-    uint8_t raw;
-    uint8_t reg = readRegister(REG_OCP);
-
-    if(current_limit == 0) {
-        // limit set to 0, disable OCP
-        reg = (reg & 0b11011111) | OCP_OFF;
-    }
-    else if(current_limit <= 120) {
-        raw = (current_limit - 45) / 5;
-        reg = (reg & 0b11000000) | OCP_ON | raw;
-    }
-    else if(current_limit <= 240) {
-        raw = (current_limit + 30) / 10;
-        reg = (reg & 0b11000000) | OCP_ON | raw;
-    }
-
-    writeRegister(REG_OCP, reg);
-}
-*/
-
 
 uint8_t SX1278::readRegister(uint8_t addr) {
     digitalWrite(this->cs, LOW);
@@ -176,40 +153,7 @@ void SX1278::setRegister(uint8_t addr, uint8_t data, uint8_t mask_lsb, uint8_t m
     digitalWrite(this->cs, HIGH);
 }
 
-
-void SX1278::startTransmission(uint8_t *data, uint8_t length) {
-    setMode(SX1278_STANDBY);
-
-    //set IO mapping for dio0 to be end of transmission
-    setRegister(REG_DIO_MAPPING_1, DIO0_LORA_TX_DONE, 6, 7);
-
-    //clear interrupt flags
-    writeRegister(REG_IRQ_FLAGS, 0xFF);
-
-    //set packet length
-    setRegister(REG_PAYLOAD_LENGTH, length);
-
-    //set FIFO pointers (all 256 bytes used for TX)
-    setRegister(REG_FIFO_TX_BASE_ADDR, 0);
-    setRegister(REG_FIFO_ADDR_PTR, 0);
-
-    //write data to FIFO
-    digitalWrite(this->cs, LOW);
-    this->spi->writeRegisterBurst(REG_FIFO, data, length, SX1278_WRITE);
-    digitalWrite(this->cs, HIGH);
-
-    //start transmission
-    setMode(SX1278_TX);
-}
-uint8_t SX1278::finishTransmission() {
-    //read and clear interrupts
-    uint8_t reg = readRegister(REG_IRQ_FLAGS);
-    writeRegister(REG_IRQ_FLAGS, 0xFF);
-    setMode(SX1278_STANDBY);
-    return reg;
-}
-
-uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t timeout) {
+uint8_t SX1278::transmit(uint8_t *data, uint8_t length) {
     setMode(SX1278_STANDBY);
 
     //set IO mapping for dio0 to be end of transmission
@@ -233,9 +177,10 @@ uint8_t SX1278::transmit(uint8_t *data, uint8_t length, uint8_t timeout) {
     //start transmission
     setMode(SX1278_TX);
 
-    while(!digitalRead(this->dio0));
-    //while(!(readRegister(REG_IRQ_FLAGS) & 0b00001000));
+    while(!digitalRead(this->dio0));    //sometimes not enough
+    while(!(readRegister(REG_IRQ_FLAGS) & 0b00001000));
     setMode(SX1278_STANDBY);
+
     //read and clear interrupts
     uint8_t reg = readRegister(REG_IRQ_FLAGS);
     writeRegister(REG_IRQ_FLAGS, 0xFF);
