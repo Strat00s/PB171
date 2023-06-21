@@ -176,7 +176,6 @@ uint8_t SX1278::transmit(uint8_t *data, uint8_t length) {
 
     //start transmission
     setMode(SX1278_TX);
-
     while(!digitalRead(this->dio0));    //sometimes not enough
     while(!(readRegister(REG_IRQ_FLAGS) & 0b00001000));
     setMode(SX1278_STANDBY);
