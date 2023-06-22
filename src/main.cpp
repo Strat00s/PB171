@@ -89,10 +89,11 @@ void blink() {
     digitalWrite(LED_PIN, LOW);
 }
 
-ISR(RTC_PIT_vect) {
+ISR(RTC_CNT_vect) {
     //cleat PIT flag
     //while (RTC.PITSTATUS);
-    RTC.PITINTFLAGS = 0xFF;
+    //RTC.PITINTFLAGS = 0xFF;
+    RTC.INTFLAGS = RTC_OVF_bm;
 }
 
 volatile uint8_t wtf = 0;
@@ -102,7 +103,7 @@ volatile uint8_t wtf = 0;
  *
  * @param time how long to sleep the MCU for in seconds
  */
-void sleep(volatile uint16_t time) {
+void sleep() {
     //save pin state
     uint8_t porta_dir   = PORTA.DIR;
     uint8_t porta_state = PORTA.OUT;
@@ -152,132 +153,21 @@ void sleep(volatile uint16_t time) {
 
     //disable ADC. Pretty much everything should be already disabled (BOD, WDT and so on)
     ADC0.CTRLA = 0;
-    
 
-    //configure PIT with 1kHz clock
-    while (RTC.STATUS & RTC_CTRLABUSY_bm);
-    RTC.CTRLA = RTC_PRESCALER_DIV1_gc;                      //disable RTC (it does not work otherwise for some reason)
-    RTC.CLKSEL = RTC_CLKSEL_INT1K_gc;   //set 1kHz clock
-    //while (RTC.PITSTATUS);
-    RTC.PITINTCTRL = RTC_PI_bm;                 //enable PIT interrupt
-    //RTC.PITDBGCTRL = 1;
-    //RTC.PITCTRLA = RTC_PERIOD_CYC8192_gc | RTC_PITEN_bm;
+    SREG |= 0b10000000;
+    sleep_cpu();
+    SREG &= 0b01111111;
 
-    //RTC.PITINTCTRL = RTC_PI_bm;                 //enable PIT interrupt
+    //disable RTC
+    //while(RTC.STATUS & RTC_CTRLABUSY_bm)
+    //RTC.CTRLA = 0;
 
-    //enable interrupts, enable sleep, switch clock source, go to sleep
-    SLPCTRL.CTRLA = SLEEP_MODE_PWR_DOWN | SLEEP_ENABLED_gc;
-    while ( (CLKCTRL.MCLKSTATUS & CLKCTRL_SOSC_bm) > 0)
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSCULP32K_gc);  //select 32khz clock
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, 0); //disable prescaler
-
-
-    while (time > 0) {
-        blink();
-        if (time >= 32) {
-            time -= 32;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC32768_gc | RTC_PITEN_bm;
-        }
-        else if (time >= 16){
-            time -= 16;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC16384_gc | RTC_PITEN_bm;
-        }
-        else if (time >= 8){
-            time -= 8;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC8192_gc | RTC_PITEN_bm;
-        }
-        else if (time >= 4){
-            time -= 4;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC4096_gc | RTC_PITEN_bm;
-        }
-        else if (time >= 2){
-            time -= 2;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC2048_gc | RTC_PITEN_bm;
-        }
-        else {
-            wtf = ~wtf;
-            if (wtf)
-                break;
-            time -= 1;
-            while (RTC.PITSTATUS);
-            RTC.PITCTRLA = RTC_PERIOD_CYC1024_gc | RTC_PITEN_bm;
-        }
-
-        SREG |= 0b10000000;
-        sleep_cpu();
-        SREG &= 0b01111111;
-
-        //disable PIT
-        while(RTC.PITSTATUS)
-        RTC.PITCTRLA = 0;
-    }
-
-    RTC.PITINTCTRL = 0;
-
-
-    //change back to main clock
-    while ( (CLKCTRL.MCLKSTATUS & CLKCTRL_SOSC_bm) > 0)
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc);
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_4X_gc | CLKCTRL_PEN_bm);
-    //disable interrupts
-    //SREG &= 0b01111111;
-    //while (RTC.PITSTATUS);
-    //RTC.PITINTCTRL = 0;
-    //RTC.PITCTRLA &= ~(RTC_PITEN_bm); 
-
-    //DONE enable what is needed
+    //restore all pins
     PORTA.DIR = porta_dir;
     PORTA.OUT = porta_state;
     PORTB.DIR = portb_dir;
     PORTB.OUT = portb_state;
 }
-
-/*
-int main() {
-    //5mhz
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PEN_bm);    //enable prescaler
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc);  //set oscilator to 20MHz
-    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_2X_gc | CLKCTRL_PEN_bm);   //set prescaler to 4
-
-    RTC.PITCTRLA = RTC_PITEN_bm;
-
-    spi.begin();
-    lora.begin(&spi, 434.0F, 18U, 8U);
-    lora.setMode(SX1278_SLEEP);
-    bmp.begin(&spi);
-
-    while (true) {
-        //start spi
-        //spi.begin();
-
-        //calculate everything
-        uint8_t data[8] = {0};
-        uint16_t vdd = getVDD();
-        data[0] = (uint8_t)(vdd);
-        data[1] = (uint8_t)(vdd >> 8);
-        bmp.getAll((int16_t*)(data + 2), (uint32_t*)(data + 4));
-        int16_t temp = (int16_t)data[3] << 8 | (int16_t)data[2];
-        uint32_t press = (uint32_t)data[7] << 24 | (uint32_t)data[6] << 16 | (uint32_t)data[5] << 8 | data[4];
-
-        //transmit it
-        lora.transmit((uint8_t*)data, 8);
-
-        //DELAY(4000);
-
-        //go to sleep
-        //lora.setMode(SX1278_SLEEP);
-        //spi.end();
-
-        //sleep(4);
-    }
-    
-}
-*/
 
 int main() {
     #if defined (__AVR_ATtiny1624__)
@@ -287,11 +177,22 @@ int main() {
     _PROTECTED_WRITE(CLKCTRL.MCLKCTRLA, CLKCTRL_CLKSEL_OSC20M_gc);  //set oscilator to 20MHz
     #endif
 
-    //enable pit timer to start the prescale counter immediately
-    //while (RTC.PITSTATUS)
-    //RTC.PITCTRLA = 1;
-    //while (RTC.STATUS & RTC_CTRLABUSY_bm);
-    //RTC.CTRLA = 0;
+
+    //enable RTC and start counting
+    RTC.CLKSEL = RTC_CLKSEL_INT1K_gc;   //set 1kHz clock
+    while (RTC.STATUS & RTC_PERBUSY_bm);
+    RTC.PER = 5 - 1;  //5 second overflow
+    //set RTC to overflow mode
+    while (RTC.STATUS & RTC_CNTBUSY_bm);
+    RTC.CNT = 0;
+    RTC.INTCTRL = RTC_OVF_bm;
+    //enable RTC, enable it in standby, set prescaler to 1024 clock -> 1s per cnt
+    while (RTC.STATUS & RTC_CTRLABUSY_bm);
+    RTC.CTRLA = RTC_RUNSTDBY_bm | RTC_PRESCALER_DIV1024_gc | RTC_RTCEN_bm;
+
+    //enable standby mode
+    SLPCTRL.CTRLA = SLEEP_MODE_STANDBY | SLEEP_ENABLED_gc;
+
 
     //initialize everything
     spi.begin();
@@ -305,7 +206,9 @@ int main() {
     if (init != 0) {
         while (true);
     }
-    
+
+
+    //main loop
     while(true) {
         //start spi
         spi.begin();
@@ -327,7 +230,7 @@ int main() {
         spi.end();
 
         //sleep for 5 seconds
-        sleep(6);
+        sleep();
     }
 
     return 0;
