@@ -1,3 +1,15 @@
+/**
+ * @file SX1278.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief SX1278 header file
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #pragma once
 #include "SPIClass.hpp"
 #include "digitalIO.hpp"

@@ -1,3 +1,15 @@
+/**
+ * @file pinmap.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief Pin maps header file
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #pragma once
 
 //atmega328p and attiny1624 pin mapping

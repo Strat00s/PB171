@@ -1,13 +1,14 @@
 /**
  * @file bmx280.cpp
  * @author Lukáš Baštýř (l.bastyr@seznam.cz)
- * @brief 
+ * @brief BMP280 and BME280 library
  * @version 0.1
  * @date 16-06-2023
  * 
  * @copyright Copyright (c) 2023
  * 
  */
+
 
 #include "bmx280.hpp"
 #include "digitalIO.hpp"

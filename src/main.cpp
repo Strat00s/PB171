@@ -82,17 +82,7 @@ uint16_t getVDD() {
 }
 
 
-void blink() {
-    pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, HIGH);
-    _delay_ms(200);
-    digitalWrite(LED_PIN, LOW);
-}
-
 ISR(RTC_CNT_vect) {
-    //cleat PIT flag
-    //while (RTC.PITSTATUS);
-    //RTC.PITINTFLAGS = 0xFF;
     RTC.INTFLAGS = RTC_OVF_bm;
 }
 
@@ -112,46 +102,21 @@ void sleep() {
 
     //TODO set the pins using single line
 
-    //set all pins as outputs and pull them low (lowest power consumption)
-    //PORTA.DIR = 0xFF;
-    //PORTA.OUT = 0;
-    //PORTB.DIR = 0xFF;
-    //PORTB.OUT = 0;
+    /* set all used pins for lowest power consumption
+     * LORA_CS cannot be input
+     * IRQ must be pulled LOW
+     * SCK and MOSI are pulled high by BMP
+     * MISO is pulled to ground by BMP
+     * CS is pulled high by BMP
+     * reset cannot be low (otherwise high power consumption)
+     * set all other pins as outputs and pull them low (lowest power consumption)
+    */
+    PORTA.DIR = 0xFF;       // BMP_CS, LORA_IRQ, LORA_RST, LORA_CS, SCK, MISO, MOSI, PA0
+    PORTA.OUT = 0b10111010; // 1,      0,        1,        1,       1,   0,    1,    0
+    PORTB.DIR = 0xFF;
+    PORTB.OUT = 0;
 
-    //LORA_CS cannot be input
-    pinMode(LORA_CS, OUTPUT);
-    digitalWrite(LORA_CS, HIGH);
-    //IRQ must be pulled LOW
-    pinMode(LORA_IRQ, OUTPUT);
-    digitalWrite(LORA_IRQ, LOW);
-
-    //SCK and MOSI are pulled high by BMP
-    pinMode(SCK, OUTPUT);
-    digitalWrite(SCK, HIGH);
-    pinMode(MOSI, OUTPUT);
-    digitalWrite(MOSI, HIGH);
-    //MISO is pulled to ground by BMP
-    pinMode(MISO, OUTPUT);
-    digitalWrite(MISO, LOW);
-
-    //CS is pulled high by BMP
-    pinMode(BMP_CS, OUTPUT);
-    digitalWrite(BMP_CS, HIGH);
-
-    //all other pins must be outputs pulled LOW for lowest power consumption
-    pinMode(PA0, OUTPUT);
-    digitalWrite(PA0, LOW);
-    pinMode(PB0, OUTPUT);
-    digitalWrite(PB0, LOW);
-    pinMode(PB1, OUTPUT);
-    digitalWrite(PB1, LOW);
-    pinMode(PB2, OUTPUT);
-    digitalWrite(PB2, LOW);
-    pinMode(PB3, OUTPUT);
-    digitalWrite(PB3, LOW);
-
-
-    //disable ADC. Pretty much everything should be already disabled (BOD, WDT and so on)
+     //disable ADC. Pretty much everything should be already disabled (BOD, WDT and so on)
     ADC0.CTRLA = 0;
 
     SREG |= 0b10000000;

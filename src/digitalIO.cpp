@@ -1,3 +1,15 @@
+/**
+ * @file digitalIO.cpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief Digital IO functions
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #include <avr/io.h>
 #include "digitalIO.hpp"
 #include "pinmap.hpp"

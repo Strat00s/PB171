@@ -1,3 +1,15 @@
+/**
+ * @file SPIClass.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief SPI header file
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #pragma once
 //simple SPI class for comunicating with connected devices
 #include <avr/io.h>

@@ -1,7 +1,7 @@
 /**
  * @file bmx280.hpp
  * @author Lukáš Baštýř (l.bastyr@seznam.cz)
- * @brief 
+ * @brief BMP280 and BME280 header file
  * @version 0.1
  * @date 16-06-2023
  * 
@@ -10,6 +10,7 @@
  * @details small library for BMP280 and BME280 sensors
  * all important formulas and values taken from: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
  */
+
 
 #pragma once
 

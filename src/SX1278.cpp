@@ -1,3 +1,15 @@
+/**
+ * @file SX1278.cpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief SX1278 library
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #include <util/delay.h>
 #include "SX1278.hpp"
 #include "digitalIO.hpp"

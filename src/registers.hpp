@@ -1,3 +1,15 @@
+/**
+ * @file registers.hpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief Register defines header
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #if defined (__AVR_ATmega328P__)
 
 #pragma once

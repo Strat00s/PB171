@@ -1,3 +1,15 @@
+/**
+ * @file pinmap.cpp
+ * @author Lukáš Baštýř (l.bastyr@seznam.cz)
+ * @brief Pin maps
+ * @version 0.1
+ * @date 24-06-2023
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
+
 #include "pinmap.hpp"
 #if defined (__AVR_ATmega328P__)
 
